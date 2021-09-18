@@ -1,0 +1,11 @@
+---
+AlwaysBreakAfterReturnType: None
+BasedOnStyle: Mozilla
+BraceWrapping:
+  AfterFunction: true
+BreakBeforeBraces: Custom
+DerivePointerAlignment: true
+SortIncludes: false
+SpaceBeforeParens: Never
+SpacesBeforeTrailingComments: 2
+...
