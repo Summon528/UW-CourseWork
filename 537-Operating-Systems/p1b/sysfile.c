@@ -17,7 +17,18 @@
 #include "fcntl.h"
 
 
-static int iocount = 0;
+struct {
+  struct spinlock lock;
+  int cnt;
+} iocount;
+
+
+void
+sysfileinit(void)
+{
+  initlock(&iocount.lock, "iocount");
+  iocount.cnt = 0;
+}
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -75,7 +86,9 @@ sys_read(void)
   struct file *f;
   int n;
   char *p;
-  iocount++;
+  acquire(&iocount.lock);
+  iocount.cnt++;
+  release(&iocount.lock);
 
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
@@ -88,7 +101,9 @@ sys_write(void)
   struct file *f;
   int n;
   char *p;
-  iocount++;
+  acquire(&iocount.lock);
+  iocount.cnt++;
+  release(&iocount.lock);
 
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
@@ -451,5 +466,5 @@ sys_pipe(void)
 int
 sys_getiocount(void)
 {
-  return iocount;
+  return iocount.cnt;
 }
