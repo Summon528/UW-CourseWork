@@ -9,10 +9,21 @@
 #include <unistd.h>
 
 char error_message[30] = "An error has occurred\n";
+#define NOTZERO(x, ret)           \
+  if ((x) == 0) {                 \
+    fputs(error_message, stderr); \
+    return ret;                   \
+  }
+
+#define SHOULDZERO(x, ret)        \
+  if ((x) != 0) {                 \
+    fputs(error_message, stderr); \
+    return ret;                   \
+  }
 typedef struct Input {
   bool redirect;
-  char** cmd;
   char* filename;
+  char** cmd;
   char*** looploc;
 } Input_t;
 
@@ -38,6 +49,7 @@ Input_t* parse_input(char* line) {
       duptoken = &input->cmd[cmdcnt];
       cmdcnt++;
     } else {
+      SHOULDZERO(input->filename, NULL)
       input->filename = strdup(token);
       duptoken = &input->filename;
     }
@@ -47,6 +59,7 @@ Input_t* parse_input(char* line) {
       loopcnt++;
     }
   }
+  if (input->redirect) NOTZERO(input->filename, NULL);
   input->cmd = realloc(input->cmd, sizeof(char*) * (cmdcnt + 1));
   input->cmd[cmdcnt] = NULL;
   input->looploc = realloc(input->looploc, sizeof(char*) * (loopcnt + 1));
@@ -76,8 +89,10 @@ void exec(const Input_t* input) {
 
 void run(Input_t* input) {
   if (strcmp(input->cmd[0], "cd") == 0) {
+    NOTZERO(input->cmd[1], );
     chdir(input->cmd[1]);
   } else if (strcmp(input->cmd[0], "exit") == 0) {
+    SHOULDZERO(input->cmd[1], );
     exit(0);
   } else if (strcmp(input->cmd[0], "path") == 0) {
     char* path = NULL;
@@ -91,7 +106,9 @@ void run(Input_t* input) {
     }
     setenv("PATH", path, 1);
   } else if (strcmp(input->cmd[0], "loop") == 0) {
-    int cnt = atoi(input->cmd[1]);
+    char *start = input->cmd[1], *end;
+    int cnt = strtol(input->cmd[1], &end, 10);
+    NOTZERO(start - end, );
     free(input->cmd[0]);
     free(input->cmd[1]);
     input->cmd += 2;
@@ -102,7 +119,7 @@ void run(Input_t* input) {
         free(*input->looploc[j]);
         *input->looploc[j] = strdup(numstr);
       }
-      exec(input);
+      run(input);
     }
   } else {
     exec(input);
@@ -124,6 +141,7 @@ int main() {
       for (int i = 0; input->cmd[i]; i++) {
         free(input->cmd[i]);
       }
+      if (input->filename) free(input->filename);
       free(input);
     }
     free(line);
