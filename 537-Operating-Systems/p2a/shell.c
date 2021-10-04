@@ -90,21 +90,27 @@ void exec(const Input_t* input) {
 void run(Input_t* input) {
   if (strcmp(input->cmd[0], "cd") == 0) {
     NOTZERO(input->cmd[1], );
+    SHOULDZERO(input->cmd[2], );
     chdir(input->cmd[1]);
   } else if (strcmp(input->cmd[0], "exit") == 0) {
     SHOULDZERO(input->cmd[1], );
     exit(0);
   } else if (strcmp(input->cmd[0], "path") == 0) {
-    char* path = NULL;
-    int pathlen = 0;
-    for (int i = 1; input->cmd[i]; i++) {
-      if (pathlen) path[pathlen - 1] = ':';
-      pathlen += strlen(input->cmd[i]) + 1;
-      path = realloc(path, sizeof(char) * (pathlen + 1));
-      strcat(path, input->cmd[i]);
-      path[pathlen] = '\0';
+    if (input->cmd[1] == NULL) {
+      setenv("PATH", "", 1);
+    } else {
+      char* path = strdup(getenv("PATH"));
+      int pathlen = strlen(path);
+      for (int i = 1; input->cmd[i]; i++) {
+        if (pathlen) path[pathlen] = ':';
+        pathlen += strlen(input->cmd[i]) + 1;
+        path = realloc(path, sizeof(char) * (pathlen + 1));
+        strcat(path, input->cmd[i]);
+        path[pathlen] = '\0';
+      }
+      setenv("PATH", path, 1);
+      free(path);
     }
-    setenv("PATH", path, 1);
   } else if (strcmp(input->cmd[0], "loop") == 0) {
     char *start = input->cmd[1], *end;
     int cnt = strtol(input->cmd[1], &end, 10);
@@ -126,14 +132,23 @@ void run(Input_t* input) {
   }
 }
 
-int main() {
+int main(int argc, char** argv) {
+  FILE* fp = stdin;
+  if (argc >= 3) {
+    fputs(error_message, stderr);
+    return EXIT_FAILURE;
+  }
+  if (argc == 2) {
+    fp = fopen(argv[1], "r");
+    NOTZERO(fp, EXIT_FAILURE);
+  }
   setenv("PATH", "/bin", true);
   while (true) {
     Input_t* input = NULL;
     char* line = NULL;
     size_t sz = 0;
-    printf("wish> ");
-    if (getline(&line, &sz, stdin) == EOF) break;
+    if (fp == stdin) printf("wish> ");
+    if (getline(&line, &sz, fp) == EOF) break;
     line[strlen(line) - 1] = '\0';
     input = parse_input(line);
     if (input != NULL) {
