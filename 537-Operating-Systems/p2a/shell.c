@@ -28,38 +28,48 @@ typedef struct Input {
 } Input_t;
 
 Input_t* parse_input(char* line) {
+  char *leftpart = line, *rightpart = strstr(line, ">");
+  if (rightpart != NULL) {
+    *rightpart = '\0';
+    rightpart++;
+  }
   Input_t* input = NULL;
   char* token = NULL;
-  char** duptoken = NULL;
-  int cmdcnt = 1, loopcnt = 0;
-  token = strtok(line, " ");
-  if (token == NULL) return NULL;
+  char** tokenptr = NULL;
+  int cmdcnt = 0, loopcnt = 0;
+  token = strtok(leftpart, " ");
+  if (token == NULL) {
+    SHOULDZERO(rightpart, NULL);
+    return NULL;
+  }
   input = malloc(sizeof(Input_t));
   memset(input, 0, sizeof(Input_t));
   input->cmd = malloc(sizeof(char*));
-  input->cmd[0] = strdup(token);
+  input->cmd[cmdcnt++] = strdup(token);
   while ((token = strtok(NULL, " ")) != NULL) {
-    if (strlen(token) == 1 && token[0] == '>') {
-      input->redirect = true;
-      continue;
-    }
-    if (!input->redirect) {
-      input->cmd = realloc(input->cmd, sizeof(char*) * (cmdcnt + 1));
-      input->cmd[cmdcnt] = strdup(token);
-      duptoken = &input->cmd[cmdcnt];
-      cmdcnt++;
-    } else {
-      SHOULDZERO(input->filename, NULL)
-      input->filename = strdup(token);
-      duptoken = &input->filename;
-    }
+    input->cmd = realloc(input->cmd, sizeof(char*) * (cmdcnt + 1));
+    input->cmd[cmdcnt] = strdup(token);
+    tokenptr = &input->cmd[cmdcnt];
+    cmdcnt++;
     if (strcmp(token, "$loop") == 0) {
       input->looploc = realloc(input->looploc, sizeof(char**) * (loopcnt + 1));
-      input->looploc[loopcnt] = duptoken;
+      input->looploc[loopcnt] = tokenptr;
       loopcnt++;
     }
   }
-  if (input->redirect) NOTZERO(input->filename, NULL);
+  if (rightpart != NULL) {
+    input->redirect = true;
+    token = strtok(rightpart, " ");
+    NOTZERO(token, NULL);
+    input->filename = strdup(token);
+    if (strcmp(input->filename, "$loop") == 0) {
+      input->looploc = realloc(input->looploc, sizeof(char**) * (loopcnt + 1));
+      input->looploc[loopcnt] = &input->filename;
+      loopcnt++;
+    }
+    SHOULDZERO(strtok(NULL, " "), NULL);
+  }
+
   input->cmd = realloc(input->cmd, sizeof(char*) * (cmdcnt + 1));
   input->cmd[cmdcnt] = NULL;
   input->looploc = realloc(input->looploc, sizeof(char*) * (loopcnt + 1));
@@ -115,8 +125,6 @@ void run(Input_t* input) {
     char *start = input->cmd[1], *end;
     int cnt = strtol(input->cmd[1], &end, 10);
     NOTZERO(start - end, );
-    free(input->cmd[0]);
-    free(input->cmd[1]);
     input->cmd += 2;
     for (int i = 0; i < cnt; i++) {
       char numstr[20];
@@ -127,6 +135,7 @@ void run(Input_t* input) {
       }
       run(input);
     }
+    input->cmd -= 2;
   } else {
     exec(input);
   }
@@ -156,6 +165,8 @@ int main(int argc, char** argv) {
       for (int i = 0; input->cmd[i]; i++) {
         free(input->cmd[i]);
       }
+      free(input->cmd);
+      free(input->looploc);
       if (input->filename) free(input->filename);
       free(input);
     }
