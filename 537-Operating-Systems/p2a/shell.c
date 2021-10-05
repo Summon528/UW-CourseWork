@@ -64,8 +64,8 @@ parse_input_err:
   for (int i = 0; i < cmdcnt; i++) {
     free(input->cmd[i]);
   }
-  if (input->cmd) free(input->cmd);
-  if (input->filename) free(input->filename);
+  free(input->cmd);
+  free(input->filename);
   free(input);
   fputs(error_message, stderr);
   return NULL;
@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
         free(input->cmd[i]);
       }
       free(input->cmd);
-      if (input->filename) free(input->filename);
+      free(input->filename);
       free(input);
     }
     free(line);
