@@ -135,6 +135,7 @@ void run(Input_t* input) {
       char numstr[20];
       sprintf(numstr, "%d", i + 1);
       for (int j = 0; j < loopcnt; j++) {
+        free(*loopptrs[j]);
         *loopptrs[j] = strdup(numstr);
       }
       run(input);
