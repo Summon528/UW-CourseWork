@@ -20,8 +20,8 @@ char error_message[30] = "An error has occurred\n";
     fputs(error_message, stderr); \
     return ret;                   \
   }
+
 typedef struct Input {
-  bool redirect;
   char* filename;
   char** cmd;
 } Input_t;
@@ -49,7 +49,6 @@ Input_t* parse_input(char* line) {
     input->cmd[cmdcnt++] = strdup(token);
   }
   if (rightpart != NULL) {
-    input->redirect = true;
     token = strtok(rightpart, " ");
     if (token == NULL) goto parse_input_err;
     input->filename = strdup(token);
@@ -74,7 +73,7 @@ parse_input_err:
 void exec(const Input_t* input) {
   const pid_t pid = fork();
   if (pid == 0) {
-    if (input->redirect) {
+    if (input->filename) {
       const int fd =
           open(input->filename, O_CREAT | O_TRUNC | O_WRONLY | O_CLOEXEC,
                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
