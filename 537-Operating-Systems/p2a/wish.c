@@ -8,6 +8,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+char** PATH = NULL;
+int PATH_CNT = 0;
+
 char error_message[30] = "An error has occurred\n";
 #define NOTZERO(x, ret)           \
   if ((x) == 0) {                 \
@@ -80,11 +83,18 @@ void exec(const Input_t* input) {
       dup2(fd, STDOUT_FILENO);
       close(fd);
     }
-    int r = execvp(input->cmd[0], input->cmd);
-    if (r == -1) {
-      fputs(error_message, stderr);
-      exit(EXIT_FAILURE);
+    char* buf = NULL;
+    for (int i = 0; i < PATH_CNT; i++) {
+      int bufsize = (strlen(PATH[i]) + strlen(input->cmd[0]) + 2);
+      buf = realloc(buf, bufsize);
+      memset(buf, 0, bufsize);
+      strcat(buf, PATH[i]);
+      strcat(buf, "/");
+      strcat(buf, input->cmd[0]);
+      execv(buf, input->cmd);
     }
+    fputs(error_message, stderr);
+    exit(EXIT_FAILURE);
   } else {
     waitpid(pid, NULL, 0);
   }
@@ -100,19 +110,16 @@ void run(Input_t* input) {
     exit(0);
   } else if (strcmp(input->cmd[0], "path") == 0) {
     if (input->cmd[1] == NULL) {
-      setenv("PATH", "", 1);
-    } else {
-      char* path = strdup(getenv("PATH"));
-      int pathlen = strlen(path);
-      for (int i = 1; input->cmd[i]; i++) {
-        if (pathlen) path[pathlen] = ':';
-        pathlen += strlen(input->cmd[i]) + 1;
-        path = realloc(path, sizeof(char) * (pathlen + 1));
-        strcat(path, input->cmd[i]);
-        path[pathlen] = '\0';
+      for (int i = 0; PATH[i]; i++) {
+        free(PATH[i]);
       }
-      setenv("PATH", path, 1);
-      free(path);
+      free(PATH);
+      PATH_CNT = 0;
+    } else {
+      for (int i = 1; input->cmd[i]; i++) {
+        PATH = realloc(PATH, sizeof(char*) * (PATH_CNT + 1));
+        PATH[PATH_CNT++] = strdup(input->cmd[i]);
+      }
     }
   } else if (strcmp(input->cmd[0], "loop") == 0) {
     char *start = input->cmd[1], *end;
@@ -148,6 +155,9 @@ void run(Input_t* input) {
 }
 
 int main(int argc, char** argv) {
+  PATH = malloc(sizeof(char*));
+  PATH[0] = strdup("/bin");
+  PATH_CNT = 1;
   FILE* fp = stdin;
   if (argc >= 3) {
     fputs(error_message, stderr);
@@ -157,7 +167,6 @@ int main(int argc, char** argv) {
     fp = fopen(argv[1], "r");
     NOTZERO(fp, EXIT_FAILURE);
   }
-  setenv("PATH", "/bin", true);
   while (true) {
     Input_t* input = NULL;
     char* line = NULL;
