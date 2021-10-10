@@ -104,7 +104,8 @@ void run(Input_t* input) {
   if (strcmp(input->cmd[0], "cd") == 0) {
     NOTZERO(input->cmd[1], );
     SHOULDZERO(input->cmd[2], );
-    chdir(input->cmd[1]);
+    int r = chdir(input->cmd[1]);
+    SHOULDZERO(r, );
   } else if (strcmp(input->cmd[0], "exit") == 0) {
     SHOULDZERO(input->cmd[1], );
     exit(0);
