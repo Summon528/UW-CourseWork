@@ -122,9 +122,14 @@ void run(Input_t* input) {
       }
     }
   } else if (strcmp(input->cmd[0], "loop") == 0) {
+    NOTZERO(input->cmd[1], );
     char *start = input->cmd[1], *end;
     int cnt = strtol(input->cmd[1], &end, 10);
     NOTZERO(start - end, );
+    if (cnt < 0) {
+      fputs(error_message, stderr);
+      return;
+    }
     char*** loopptrs = NULL;
     int loopcnt = 0;
     for (int i = 0; input->cmd[i]; i++) {
