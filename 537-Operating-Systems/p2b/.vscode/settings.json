@@ -1,3 +1,18 @@
 {
     "editor.formatOnSave": false,
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/*.o": true,
+        "**/*.d": true,
+        "**/*.asm": true,
+        "**/*.sym": true,
+        "bootblock": true,
+        "entryother": true,
+        "_*": true,
+    }
 }
