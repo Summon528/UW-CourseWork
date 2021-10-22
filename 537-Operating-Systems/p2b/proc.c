@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "pstat.h"
 
 struct {
   struct spinlock lock;
@@ -88,6 +89,8 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->ticks = 0;
+  p->tickets = 1;
 
   release(&ptable.lock);
 
@@ -198,6 +201,7 @@ fork(void)
   }
   np->sz = curproc->sz;
   np->parent = curproc;
+  np->tickets = curproc->tickets;
   *np->tf = *curproc->tf;
 
   // Clear %eax so that fork returns 0 in the child.
@@ -336,19 +340,23 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+      for (int i = 0; i < p->tickets; i++) {
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        if (p->state != RUNNABLE) break;
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        p->ticks++;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+      }
     }
     release(&ptable.lock);
 
@@ -531,4 +539,29 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+
+int sys_settickets(void) {
+  int num;
+  struct proc *curproc = myproc();
+  if (argint(0, &num) < 0 || num <= 0) {
+    return -1;
+  }
+  curproc->tickets = num;
+  return 0;
+}
+
+int sys_getpinfo(void) {
+  struct pstat* pstat;
+  if (argptr(0, (char **)&pstat, sizeof(struct pstat)) < 0) {
+    return -1;
+  }
+  for (int i = 0; i < NPROC; i++) {
+    pstat->inuse[i] = ptable.proc[i].state != UNUSED;
+    pstat->pid[i] = ptable.proc[i].pid;
+    pstat->tickets[i] = ptable.proc[i].tickets;
+    pstat->ticks[i] = ptable.proc[i].ticks;
+  }
+  return 0;
 }

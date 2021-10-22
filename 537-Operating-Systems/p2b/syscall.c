@@ -63,7 +63,7 @@ argptr(int n, char **pp, int size)
  
   if(argint(n, &i) < 0)
     return -1;
-  if(size < 0 || (uint)i >= curproc->sz || (uint)i+size > curproc->sz)
+  if(size < 0 || (uint)i >= curproc->sz || (uint)i+size > curproc->sz || i < PGSIZE)
     return -1;
   *pp = (char*)i;
   return 0;
@@ -103,29 +103,33 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_settickets(void);
+extern int sys_getpinfo(void);
 
 static int (*syscalls[])(void) = {
-[SYS_fork]    sys_fork,
-[SYS_exit]    sys_exit,
-[SYS_wait]    sys_wait,
-[SYS_pipe]    sys_pipe,
-[SYS_read]    sys_read,
-[SYS_kill]    sys_kill,
-[SYS_exec]    sys_exec,
-[SYS_fstat]   sys_fstat,
-[SYS_chdir]   sys_chdir,
-[SYS_dup]     sys_dup,
-[SYS_getpid]  sys_getpid,
-[SYS_sbrk]    sys_sbrk,
-[SYS_sleep]   sys_sleep,
-[SYS_uptime]  sys_uptime,
-[SYS_open]    sys_open,
-[SYS_write]   sys_write,
-[SYS_mknod]   sys_mknod,
-[SYS_unlink]  sys_unlink,
-[SYS_link]    sys_link,
-[SYS_mkdir]   sys_mkdir,
-[SYS_close]   sys_close,
+[SYS_fork]       sys_fork,
+[SYS_exit]       sys_exit,
+[SYS_wait]       sys_wait,
+[SYS_pipe]       sys_pipe,
+[SYS_read]       sys_read,
+[SYS_kill]       sys_kill,
+[SYS_exec]       sys_exec,
+[SYS_fstat]      sys_fstat,
+[SYS_chdir]      sys_chdir,
+[SYS_dup]        sys_dup,
+[SYS_getpid]     sys_getpid,
+[SYS_sbrk]       sys_sbrk,
+[SYS_sleep]      sys_sleep,
+[SYS_uptime]     sys_uptime,
+[SYS_open]       sys_open,
+[SYS_write]      sys_write,
+[SYS_mknod]      sys_mknod,
+[SYS_unlink]     sys_unlink,
+[SYS_link]       sys_link,
+[SYS_mkdir]      sys_mkdir,
+[SYS_close]      sys_close,
+[SYS_settickets] sys_settickets,
+[SYS_getpinfo]   sys_getpinfo
 };
 
 void
