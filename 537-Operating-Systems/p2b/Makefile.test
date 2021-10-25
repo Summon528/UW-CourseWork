@@ -185,6 +185,8 @@ UPROGS=\
 	_test_9\
 	_test_10\
 	_test_11\
+	_test_12\
+	_test_13\
 	_mkdir\
 	_rm\
 	_sh\
