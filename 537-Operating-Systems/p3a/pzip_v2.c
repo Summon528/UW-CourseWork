@@ -22,6 +22,12 @@
 
 const unsigned long WORKSIZE = (1 << 24);
 
+typedef struct ret {
+    char* str;
+    char front, back;
+    int flen, blen, slen;
+} ret_t;
+
 typedef struct arg {
     char* src;
     int st;
@@ -34,12 +40,9 @@ typedef struct que {
     int used;
 } que_t;
 
+ret_t* rets;
 que_t* que;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex_cond = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-char gprevchar = 0;
-int turn = -1, charcnt = 0;
 
 void* worker() {
     while (1) {
@@ -51,10 +54,7 @@ void* worker() {
         int id = que->used;
         arg_t arg = que->data[que->used++];
         pthread_mutex_unlock(&mutex);
-
-        char* str = NULL;
-        char front = 0, back = 0;
-        int flen = 0, blen = 0, slen = 0;
+        memset(&rets[id], 0, sizeof(ret_t));
 
         char prevchar = arg.src[arg.st];
         int curcnt = 1, ssz = 0, sidx = 0;
@@ -64,59 +64,28 @@ void* worker() {
                 curcnt++;
                 continue;
             }
-            if (front == 0) {
+            if (rets[id].front == 0) {
                 // First
-                front = prevchar;
-                flen = curcnt;
+                rets[id].front = prevchar;
+                rets[id].flen = curcnt;
             } else {
                 // Mid
                 if (sidx + 4 >= ssz) {
                     ssz += sizeof(char) * (5 * (1 << 16));
-                    str = realloc(str, ssz);
+                    rets[id].str = realloc(rets[id].str, ssz);
                 }
-                str[sidx++] = curcnt & 0x000000ff;
-                str[sidx++] = (curcnt & 0x0000ff00) >> 8;
-                str[sidx++] = (curcnt & 0x00ff0000) >> 16;
-                str[sidx++] = (curcnt & 0xff000000) >> 24;
-                str[sidx++] = prevchar;
+                rets[id].str[sidx++] = curcnt & 0x000000ff;
+                rets[id].str[sidx++] = (curcnt & 0x0000ff00) >> 8;
+                rets[id].str[sidx++] = (curcnt & 0x00ff0000) >> 16;
+                rets[id].str[sidx++] = (curcnt & 0xff000000) >> 24;
+                rets[id].str[sidx++] = prevchar;
             }
             prevchar = arg.src[i];
             curcnt = 1;
         }
-        back = prevchar;
-        blen = curcnt;
-        slen = sidx;
-
-        pthread_mutex_lock(&mutex_cond);
-        while (turn != id - 1) {
-            pthread_cond_wait(&cond, &mutex_cond);
-        }
-        if (front == 0) {
-            if (gprevchar == back) {
-                charcnt += blen;
-            } else {
-                PREPR(gprevchar, charcnt);
-                gprevchar = back;
-                charcnt = blen;
-            }
-            goto done;
-        }
-
-        if (gprevchar == front) {
-            PREPR(gprevchar, charcnt + flen);
-        } else {
-            PREPR(gprevchar, charcnt);
-            PREPR(front, flen);
-        }
-        fwrite_unlocked(str, sizeof(char), slen, stdout);
-        gprevchar = back;
-        charcnt = blen;
-
-    done:
-        free(str);
-        turn++;
-        pthread_cond_broadcast(&cond);
-        pthread_mutex_unlock(&mutex_cond);
+        rets[id].back = prevchar;
+        rets[id].blen = curcnt;
+        rets[id].slen = sidx;
     }
     return NULL;
 }
@@ -160,7 +129,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    int nprocs = get_nprocs() * 3 / 2;
+    rets = malloc(sizeof(ret_t) * que->qsize);
+
+    int nprocs = get_nprocs();
 
     pthread_t pthreads[nprocs];
     for (int i = 0; i < nprocs; i++) {
@@ -169,5 +140,34 @@ int main(int argc, char** argv) {
     for (int i = 0; i < nprocs; i++) {
         pthread_join(pthreads[i], NULL);
     }
-    PREPR(gprevchar, charcnt);
+
+    char prevchar = 0;
+    int cnt = 0;
+    // if rets[i].front == 0, then the whole chunck contains the same char
+    for (int i = 0; i < que->qsize; i++) {
+        if (rets[i].front == 0) {
+            if (prevchar == rets[i].back) {
+                cnt += rets[i].blen;
+            } else {
+                PREPR(prevchar, cnt);
+                prevchar = rets[i].back;
+                cnt = rets[i].blen;
+            }
+            continue;
+        }
+
+        if (prevchar == rets[i].front) {
+            PREPR(prevchar, cnt + rets[i].flen);
+        } else {
+            PREPR(prevchar, cnt);
+            PREPR(rets[i].front, rets[i].flen);
+        }
+
+        fwrite_unlocked(rets[i].str, sizeof(char), rets[i].slen, stdout);
+
+        prevchar = rets[i].back;
+        cnt = rets[i].blen;
+    }
+
+    PREPR(prevchar, cnt);
 }
