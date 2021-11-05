@@ -11,15 +11,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PREPR(c, cnt)                              \
-    if (cnt != 0) {                                \
-        char buf[5];                               \
-        buf[0] = (cnt)&0x000000ff;                 \
-        buf[1] = (((cnt)&0x0000ff00) >> 8);        \
-        buf[2] = (((cnt)&0x00ff0000) >> 16);       \
-        buf[3] = (((cnt)&0xff000000) >> 24);       \
-        buf[4] = (c);                              \
-        assert(write(STDOUT_FILENO, buf, 5) == 5); \
+#define PREPR(c, cnt)                                 \
+    if (cnt != 0) {                                   \
+        putchar_unlocked((cnt)&0x000000ff);           \
+        putchar_unlocked((((cnt)&0x0000ff00) >> 8));  \
+        putchar_unlocked((((cnt)&0x00ff0000) >> 16)); \
+        putchar_unlocked((((cnt)&0xff000000) >> 24)); \
+        putchar_unlocked((c));                        \
     }
 
 const unsigned long WORKSIZE = (1 << 24);
@@ -165,7 +163,7 @@ int main(int argc, char** argv) {
             PREPR(rets[i].front, rets[i].flen);
         }
 
-        assert(write(STDOUT_FILENO, rets[i].str, rets[i].slen) == rets[i].slen);
+        fwrite_unlocked(rets[i].str, sizeof(char), rets[i].slen, stdout);
 
         prevchar = rets[i].back;
         cnt = rets[i].blen;
