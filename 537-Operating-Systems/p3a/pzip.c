@@ -11,13 +11,15 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PREPR(c, cnt)                                 \
-    if (cnt != 0) {                                   \
-        putchar_unlocked((cnt)&0x000000ff);           \
-        putchar_unlocked((((cnt)&0x0000ff00) >> 8));  \
-        putchar_unlocked((((cnt)&0x00ff0000) >> 16)); \
-        putchar_unlocked((((cnt)&0xff000000) >> 24)); \
-        putchar_unlocked((c));                        \
+#pragma GCC optimize("Ofast")
+
+#define PREPR(c, cnt)                               \
+    if (cnt != 0) {                                 \
+        putchar_unlocked((cnt)&0x000000ff);         \
+        putchar_unlocked(((cnt)&0x0000ff00) >> 8);  \
+        putchar_unlocked(((cnt)&0x00ff0000) >> 16); \
+        putchar_unlocked(((cnt)&0xff000000) >> 24); \
+        putchar_unlocked((c));                      \
     }
 
 const unsigned long WORKSIZE = (1 << 24);
@@ -53,13 +55,21 @@ void* worker() {
         pthread_mutex_unlock(&mutex);
 
         char* str = NULL;
+        int st = arg.st, ed = arg.st + arg.sz;
+        for (; st < ed && arg.src[st] == 0; st++)
+            ;
+        if (st == ed) goto done;
+        for (; ed - 1 >= 0 && arg.src[ed - 1] == 0; ed--)
+            ;
+
         char front = 0, back = 0;
         int flen = 0, blen = 0, slen = 0;
 
-        char prevchar = arg.src[arg.st];
+        char prevchar = arg.src[st];
         int curcnt = 1, ssz = 0, sidx = 0;
 
-        for (int i = arg.st + 1; i < arg.st + arg.sz; i++) {
+        for (int i = st + 1; i < ed; i++) {
+            if (arg.src[i] == 0) continue;
             if (prevchar == arg.src[i]) {
                 curcnt++;
                 continue;
@@ -132,13 +142,14 @@ int main(int argc, char** argv) {
     que->used = 0;
     for (int i = 1; i < argc; i++) {
         struct stat st;
-        assert(stat(argv[i], &st) != -1);
+        if (stat(argv[i], &st) == -1) continue;
         fsizes[i - 1] = st.st_size;
         que->qsize +=
             (fsizes[i - 1] / WORKSIZE) + (fsizes[i - 1] % WORKSIZE != 0);
     }
     que->data = malloc(sizeof(arg_t) * que->qsize);
     for (int i = 1, qidx = 0; i < argc; i++) {
+        if (fsizes[i - 1] == 0) continue;
         int fd = open(argv[i], O_RDONLY);
         assert(fd != -1);
         char* mem =

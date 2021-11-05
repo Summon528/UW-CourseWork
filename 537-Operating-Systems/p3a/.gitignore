@@ -1,0 +1,9 @@
+tests
+pzip
+v1
+v2
+*.py
+rmz
+*.tar.gz
+tests-out
+p3a-data
