@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <pthread.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,25 +8,13 @@
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
 #include <sys/types.h>
-#include <unistd.h>
-
-#define PREPR(c, cnt)                              \
-    if (cnt != 0) {                                \
-        char buf[5];                               \
-        buf[0] = (cnt)&0x000000ff;                 \
-        buf[1] = (((cnt)&0x0000ff00) >> 8);        \
-        buf[2] = (((cnt)&0x00ff0000) >> 16);       \
-        buf[3] = (((cnt)&0xff000000) >> 24);       \
-        buf[4] = (c);                              \
-        assert(write(STDOUT_FILENO, buf, 5) == 5); \
-    }
 
 const unsigned long WORKSIZE = (1 << 24);
 
 typedef struct ret {
-    char* str;
-    char front, back;
-    int flen, blen, slen;
+    char* chrs;
+    int* cnt;
+    int sz;
 } ret_t;
 
 typedef struct arg {
@@ -56,38 +43,29 @@ void* worker() {
         int id = que->used;
         arg_t arg = que->data[que->used++];
         pthread_mutex_unlock(&mutex);
-        memset(&rets[id], 0, sizeof(ret_t));
-
-        char prevchar = arg.src[arg.st];
-        int curcnt = 1, ssz = 0, sidx = 0;
-
-        for (int i = arg.st + 1; i < arg.st + arg.sz; i++) {
-            if (prevchar == arg.src[i]) {
-                curcnt++;
-                continue;
-            }
-            if (rets[id].front == 0) {
-                // First
-                rets[id].front = prevchar;
-                rets[id].flen = curcnt;
-            } else {
-                // Mid
-                if (sidx + 4 >= ssz) {
-                    ssz += sizeof(char) * (5 * (1 << 16));
-                    rets[id].str = realloc(rets[id].str, ssz);
+        int bufsz = 1 << 10, idx = 0;
+        rets[id].chrs = malloc(sizeof(char) * bufsz);
+        rets[id].cnt = malloc(sizeof(int) * bufsz);
+        char prevchr = arg.src[arg.st];
+        int curcnt = 1;
+        for (int i = arg.st + 1; i <= arg.st + arg.sz; i++) {
+            if (i == arg.st + arg.sz || prevchr != arg.src[i]) {
+                if (idx >= bufsz) {
+                    bufsz <<= 1;
+                    rets[id].chrs =
+                        realloc(rets[id].chrs, sizeof(char) * bufsz);
+                    rets[id].cnt = realloc(rets[id].cnt, sizeof(int) * bufsz);
                 }
-                rets[id].str[sidx++] = curcnt & 0x000000ff;
-                rets[id].str[sidx++] = (curcnt & 0x0000ff00) >> 8;
-                rets[id].str[sidx++] = (curcnt & 0x00ff0000) >> 16;
-                rets[id].str[sidx++] = (curcnt & 0xff000000) >> 24;
-                rets[id].str[sidx++] = prevchar;
+                rets[id].chrs[idx] = prevchr;
+                rets[id].cnt[idx++] = curcnt;
+                if (i == arg.sz) break;
+                curcnt = 1;
+                prevchr = arg.src[i];
+            } else {
+                curcnt++;
             }
-            prevchar = arg.src[i];
-            curcnt = 1;
         }
-        rets[id].back = prevchar;
-        rets[id].blen = curcnt;
-        rets[id].slen = sidx;
+        rets[id].sz = idx;
     }
     return NULL;
 }
@@ -142,34 +120,29 @@ int main(int argc, char** argv) {
     for (int i = 0; i < nprocs; i++) {
         pthread_join(pthreads[i], NULL);
     }
-
     char prevchar = 0;
     int cnt = 0;
-    // if rets[i].front == 0, then the whole chunck contains the same char
+
     for (int i = 0; i < que->qsize; i++) {
-        if (rets[i].front == 0) {
-            if (prevchar == rets[i].back) {
-                cnt += rets[i].blen;
+        for (int j = 0; j < rets[i].sz; j++) {
+            if (rets[i].chrs[j] != prevchar) {
+                if (prevchar != 0) {
+                    putchar_unlocked(cnt & 0x000000ff);
+                    putchar_unlocked((cnt & 0x0000ff00) >> 8);
+                    putchar_unlocked((cnt & 0x00ff0000) >> 16);
+                    putchar_unlocked((cnt & 0xff000000) >> 24);
+                    putchar_unlocked(prevchar);
+                }
+                prevchar = rets[i].chrs[j];
+                cnt = rets[i].cnt[j];
             } else {
-                PREPR(prevchar, cnt);
-                prevchar = rets[i].back;
-                cnt = rets[i].blen;
+                cnt += rets[i].cnt[j];
             }
-            continue;
         }
-
-        if (prevchar == rets[i].front) {
-            PREPR(prevchar, cnt + rets[i].flen);
-        } else {
-            PREPR(prevchar, cnt);
-            PREPR(rets[i].front, rets[i].flen);
-        }
-
-        assert(write(STDOUT_FILENO, rets[i].str, rets[i].slen) == rets[i].slen);
-
-        prevchar = rets[i].back;
-        cnt = rets[i].blen;
     }
-
-    PREPR(prevchar, cnt);
+    putchar_unlocked(cnt & 0x000000ff);
+    putchar_unlocked((cnt & 0x0000ff00) >> 8);
+    putchar_unlocked((cnt & 0x00ff0000) >> 16);
+    putchar_unlocked((cnt & 0xff000000) >> 24);
+    putchar_unlocked(prevchar);
 }
