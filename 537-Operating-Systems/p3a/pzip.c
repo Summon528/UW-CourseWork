@@ -55,10 +55,17 @@ void* worker() {
         pthread_mutex_unlock(&mutex);
 
         char* str = NULL;
+
         int st = arg.st, ed = arg.st + arg.sz;
         for (; st < ed && arg.src[st] == 0; st++)
             ;
-        if (st == ed) goto done;
+        if (st == ed) {
+            pthread_mutex_lock(&mutex_cond);
+            while (turn != id) {
+                pthread_cond_wait(&cond, &mutex_cond);
+            }
+            goto done;
+        }
         for (; ed - 1 >= 0 && arg.src[ed - 1] == 0; ed--)
             ;
 
