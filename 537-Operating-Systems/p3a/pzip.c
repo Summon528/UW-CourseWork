@@ -41,7 +41,7 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_cond = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 char gprevchar = 0;
-int turn = -1, charcnt = 0;
+int turn = 0, charcnt = 0;
 
 void* worker() {
     while (1) {
@@ -98,7 +98,7 @@ void* worker() {
         slen = sidx;
 
         pthread_mutex_lock(&mutex_cond);
-        while (turn != id - 1) {
+        while (turn != id) {
             pthread_cond_wait(&cond, &mutex_cond);
         }
         if (front == 0) {
