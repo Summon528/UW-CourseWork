@@ -46,10 +46,14 @@ void* worker() {
         int bufsz = 1 << 10, idx = 0;
         rets[id].chrs = malloc(sizeof(char) * bufsz);
         rets[id].cnt = malloc(sizeof(int) * bufsz);
-        char prevchr = arg.src[arg.st];
+        int st = arg.st, ed = arg.st + arg.sz;
+        for (; st < ed && arg.src[st] == 0; st++)
+            ;
+        char prevchr = arg.src[st];
         int curcnt = 1;
-        for (int i = arg.st + 1; i <= arg.st + arg.sz; i++) {
-            if (i == arg.st + arg.sz || prevchr != arg.src[i]) {
+        for (int i = st + 1; i <= ed; i++) {
+            if (i != ed && arg.src[i] == 0) continue;
+            if (i == ed || prevchr != arg.src[i]) {
                 if (idx >= bufsz) {
                     bufsz <<= 1;
                     rets[id].chrs =
@@ -81,13 +85,14 @@ int main(int argc, char** argv) {
     que->used = 0;
     for (int i = 1; i < argc; i++) {
         struct stat st;
-        assert(stat(argv[i], &st) != -1);
+        if (stat(argv[i], &st) == -1) continue;
         fsizes[i - 1] = st.st_size;
         que->qsize +=
             (fsizes[i - 1] / WORKSIZE) + (fsizes[i - 1] % WORKSIZE != 0);
     }
     que->data = malloc(sizeof(arg_t) * que->qsize);
     for (int i = 1, qidx = 0; i < argc; i++) {
+        if (fsizes[i - 1] == 0) continue;
         int fd = open(argv[i], O_RDONLY);
         assert(fd != -1);
         char* mem =
