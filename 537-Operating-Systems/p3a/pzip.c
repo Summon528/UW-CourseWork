@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    int nprocs = get_nprocs() * 3 / 2;
+    int nprocs = get_nprocs() + 2;
 
     pthread_t pthreads[nprocs];
     for (int i = 0; i < nprocs; i++) {
