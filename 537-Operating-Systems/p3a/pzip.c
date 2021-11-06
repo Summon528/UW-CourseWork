@@ -13,6 +13,8 @@
 
 #pragma GCC optimize("Ofast")
 
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 #define PREPR(c, cnt)                               \
     if (cnt != 0) {                                 \
         putchar_unlocked((cnt)&0x000000ff);         \
@@ -26,14 +28,12 @@ const unsigned long WORKSIZE = (1 << 24);
 
 typedef struct arg {
     char* src;
-    int st;
-    int sz;
+    int st, ed;
 } arg_t;
 
 typedef struct que {
     arg_t* data;
-    int qsize;
-    int used;
+    int sz, len, used;
 } que_t;
 
 que_t* que;
@@ -45,12 +45,12 @@ int turn = 0, charcnt = 0;
 
 void* worker() {
     char* buf = NULL;
-    int bufsz = sizeof(char) * (5 * (1 << 24));
-    buf = malloc(bufsz);
+    int bufsz = (5 * (1 << 24));
+    buf = malloc(sizeof(char) * bufsz);
 
     while (1) {
         pthread_mutex_lock(&mutex);
-        if (que->used == que->qsize) {
+        if (que->used == que->len) {
             pthread_mutex_unlock(&mutex);
             break;
         }
@@ -58,7 +58,7 @@ void* worker() {
         arg_t arg = que->data[que->used++];
         pthread_mutex_unlock(&mutex);
 
-        int st = arg.st, ed = arg.st + arg.sz;
+        int st = arg.st, ed = arg.ed;
         for (; st < ed && arg.src[st] == 0; st++)
             ;
         if (st == ed) {
@@ -91,7 +91,7 @@ void* worker() {
                 // Mid
                 if (bidx + 4 >= bufsz) {
                     bufsz <<= 1;
-                    buf = realloc(buf, bufsz);
+                    buf = realloc(buf, sizeof(char) * bufsz);
                 }
                 buf[bidx++] = curcnt & 0x000000ff;
                 buf[bidx++] = (curcnt & 0x0000ff00) >> 8;
@@ -146,37 +146,29 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int* fsizes = malloc(sizeof(long) * argc - 1);
-    que = malloc(sizeof(que));
+    que = malloc(sizeof(que_t));
+    que->sz = (1 << 12);
+    que->data = malloc(sizeof(arg_t) * que->sz);
+    que->len = 0;
     que->used = 0;
     for (int i = 1; i < argc; i++) {
         struct stat st;
         if (stat(argv[i], &st) == -1) continue;
-        fsizes[i - 1] = st.st_size;
-        que->qsize +=
-            (fsizes[i - 1] / WORKSIZE) + (fsizes[i - 1] % WORKSIZE != 0);
-    }
-    que->data = malloc(sizeof(arg_t) * que->qsize);
-    for (int i = 1, qidx = 0; i < argc; i++) {
-        if (fsizes[i - 1] == 0) continue;
         int fd = open(argv[i], O_RDONLY);
-        assert(fd != -1);
         char* mem =
-            (char*)mmap(NULL, fsizes[i - 1], PROT_READ, MAP_PRIVATE, fd, 0);
+            (char*)mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
         assert(mem != (char*)-1);
-        int st = 0;
-        for (int j = 0; j < fsizes[i - 1] / WORKSIZE; j++) {
-            que->data[qidx].src = mem;
-            que->data[qidx].sz = WORKSIZE;
-            que->data[qidx].st = st;
-            st += WORKSIZE;
-            qidx++;
-        }
-        if (fsizes[i - 1] % WORKSIZE != 0) {
-            que->data[qidx].src = mem;
-            que->data[qidx].sz = fsizes[i - 1] % WORKSIZE;
-            que->data[qidx].st = st;
-            qidx++;
+        int start = 0;
+        for (int j = 0; j <= st.st_size / WORKSIZE; j++) {
+            if (que->len >= que->sz) {
+                que->sz <<= 1;
+                que->data = realloc(que->data, sizeof(arg_t) * que->sz);
+            }
+            que->data[que->len].src = mem;
+            que->data[que->len].st = start;
+            que->data[que->len].ed = MIN(start + WORKSIZE, st.st_size);
+            start += WORKSIZE;
+            que->len++;
         }
     }
 
