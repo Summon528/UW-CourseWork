@@ -24,7 +24,7 @@
         putchar_unlocked((c));                      \
     }
 
-const unsigned long WORKSIZE = (1 << 24);
+const unsigned long WORKSIZE = (1 << 22);
 
 typedef struct arg {
     char* src;
@@ -38,33 +38,28 @@ typedef struct que {
 
 que_t* que;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex_cond = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
 char gprevchar = 0;
 int turn = 0, charcnt = 0;
 
 void* worker() {
-    char* buf = NULL;
+    char* str = NULL;
     int bufsz = (5 * (1 << 24));
-    buf = malloc(sizeof(char) * bufsz);
+    str = malloc(sizeof(char) * bufsz);
 
     while (1) {
-        pthread_mutex_lock(&mutex);
-        if (que->used == que->len) {
-            pthread_mutex_unlock(&mutex);
-            break;
-        }
-        int id = que->used;
-        arg_t arg = que->data[que->used++];
-        pthread_mutex_unlock(&mutex);
+        int id = __atomic_fetch_add(&que->used, 1, __ATOMIC_SEQ_CST);
+        if (id >= que->len) break;
+        arg_t arg = que->data[id];
 
         int st = arg.st, ed = arg.ed;
         for (; st < ed && arg.src[st] == 0; st++)
             ;
         if (st == ed) {
-            pthread_mutex_lock(&mutex_cond);
+            pthread_mutex_lock(&mutex);
             while (turn != id) {
-                pthread_cond_wait(&cond, &mutex_cond);
+                pthread_cond_wait(&cond, &mutex);
             }
             goto done;
         }
@@ -72,10 +67,10 @@ void* worker() {
             ;
 
         char front = 0, back = 0;
-        int flen = 0, blen = 0, slen = 0;
+        int flen = 0, blen = 0;
 
         char prevchar = arg.src[st];
-        int curcnt = 1, bidx = 0;
+        int curcnt = 1, sidx = 0;
 
         for (int i = st + 1; i < ed; i++) {
             if (arg.src[i] == 0) continue;
@@ -84,31 +79,28 @@ void* worker() {
                 continue;
             }
             if (front == 0) {
-                // First
                 front = prevchar;
                 flen = curcnt;
             } else {
-                // Mid
-                if (bidx + 4 >= bufsz) {
+                if (sidx + 4 >= bufsz) {
                     bufsz <<= 1;
-                    buf = realloc(buf, sizeof(char) * bufsz);
+                    str = realloc(str, sizeof(char) * bufsz);
                 }
-                buf[bidx++] = curcnt & 0x000000ff;
-                buf[bidx++] = (curcnt & 0x0000ff00) >> 8;
-                buf[bidx++] = (curcnt & 0x00ff0000) >> 16;
-                buf[bidx++] = (curcnt & 0xff000000) >> 24;
-                buf[bidx++] = prevchar;
+                str[sidx++] = curcnt & 0x000000ff;
+                str[sidx++] = (curcnt & 0x0000ff00) >> 8;
+                str[sidx++] = (curcnt & 0x00ff0000) >> 16;
+                str[sidx++] = (curcnt & 0xff000000) >> 24;
+                str[sidx++] = prevchar;
             }
             prevchar = arg.src[i];
             curcnt = 1;
         }
         back = prevchar;
         blen = curcnt;
-        slen = bidx;
 
-        pthread_mutex_lock(&mutex_cond);
+        pthread_mutex_lock(&mutex);
         while (turn != id) {
-            pthread_cond_wait(&cond, &mutex_cond);
+            pthread_cond_wait(&cond, &mutex);
         }
         if (front == 0) {
             if (gprevchar == back) {
@@ -127,16 +119,16 @@ void* worker() {
             PREPR(gprevchar, charcnt);
             PREPR(front, flen);
         }
-        fwrite_unlocked(buf, sizeof(char), slen, stdout);
+        fwrite_unlocked(str, sizeof(char), sidx, stdout);
         gprevchar = back;
         charcnt = blen;
 
     done:
         turn++;
         pthread_cond_broadcast(&cond);
-        pthread_mutex_unlock(&mutex_cond);
+        pthread_mutex_unlock(&mutex);
     }
-    free(buf);
+    free(str);
     return NULL;
 }
 
