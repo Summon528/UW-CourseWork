@@ -1,7 +1,7 @@
 all: pzip
 
 pzip: pzip.c
-	gcc pzip.c -Wall -O2 -pthread -o pzip
+	gcc pzip.c -Wall -Werror -O -pthread -o pzip
 
 v2: pzip_v2.c
 	gcc pzip_v2.c -Wall -O2 -pthread -o v2

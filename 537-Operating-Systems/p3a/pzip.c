@@ -24,7 +24,7 @@
         putchar_unlocked((c));                      \
     }
 
-const unsigned long WORKSIZE = (1 << 22);
+const unsigned long WORKSIZE = (1 << 24);
 
 typedef struct arg {
     char* src;
