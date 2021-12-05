@@ -1,0 +1,4 @@
+client
+libmfs.so
+server
+*.img
