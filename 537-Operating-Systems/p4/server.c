@@ -270,6 +270,7 @@ int MFS_Write(int inum, char* buffer, int block) {
     if (block < 0 || block >= MAX_DPTR) return -1;
     Inode_t* inode = finode(inum);
     if (inode == NULL || inode->type == MFS_DIRECTORY) return -1;
+    if (inode->dptrs[block] == -1) inode->size += MFS_BLOCK_SIZE;
     inode->dptrs[block] = cp->end;
     WRITEEND(fd, buffer, MFS_BLOCK_SIZE);
     commit_inode(inum, inode);
@@ -306,6 +307,7 @@ int MFS_Unlink(int pinum, char* name) {
     if (foundinum == -1) return 0;
     commit_inode(foundinum, NULL);
     syncfs();
+    return 0;
 }
 
 int MFS_Shutdown() {

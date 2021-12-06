@@ -16,6 +16,11 @@ int main(int argc, char* argv[]) {
     printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "test3"));
     char s[] = "hello world!";
     printf("%d\n", MFS_Write(1, s, 2));
+    puts("==");
+    MFS_Stat(1, &stat);
+    printf("%d\n", stat.type);
+    printf("%d\n", stat.size);
+    puts("==");
     char buf[4096];
     printf("%d\n", MFS_Read(1, buf, 2));
     printf("%s\n", buf);
