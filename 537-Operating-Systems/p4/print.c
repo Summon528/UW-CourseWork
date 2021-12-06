@@ -47,6 +47,7 @@ int main() {
     printf("Checkpoint:\n");
     printf("\tend: 0x%x\n", cp->end);
     for (int i = 0; i < MAX_PIECE; i++) {
+        if (cp->inode_map_ptrs[i] == -1) continue;
         printf("\tinode_map_ptrs[%d]: 0x%x\n", i, cp->inode_map_ptrs[i]);
     }
 
@@ -54,6 +55,7 @@ int main() {
     puts("Inodes:");
     Inode_t inode;
     for (int i = 0; i < MAX_PIECE; i++) {
+        if (cp->inode_map_ptrs[i] == -1) continue;
         lseek(fd, cp->inode_map_ptrs[i], SEEK_SET);
         read(fd, &im, sizeof(Inodemap_t));
         printf("\tpiece[%d]:\n", i);

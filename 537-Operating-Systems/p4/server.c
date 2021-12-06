@@ -57,21 +57,15 @@ Checkpoint_t* cp;
 int fd;
 
 void initfs() {
+    memset(cp, -1, sizeof(Checkpoint_t));
     cp->inode_map_ptrs[0] = sizeof(Checkpoint_t);
-    for (int i = 1; i < MAX_PIECE; i++) {
-        cp->inode_map_ptrs[i] = cp->inode_map_ptrs[i - 1] + sizeof(Inodemap_t);
-    }
-    int root_off = cp->inode_map_ptrs[MAX_PIECE - 1] + sizeof(Inodemap_t);
+    int root_off = cp->inode_map_ptrs[0] + sizeof(Inodemap_t);
     cp->end = root_off + sizeof(Inode_t) + sizeof(Dent_t) * 2;
     WRITE(fd, cp, sizeof(Checkpoint_t));
     Inodemap_t* im = malloc(sizeof(Inodemap_t));
     memset(im->inode_ptrs, -1, sizeof(im->inode_ptrs));
     im->inode_ptrs[0] = root_off;
     WRITE(fd, im, sizeof(Inodemap_t));
-    im->inode_ptrs[0] = -1;
-    for (int i = 1; i < MAX_PIECE; i++) {
-        WRITE(fd, im, sizeof(Inodemap_t));
-    }
     free(im);
 
     Inode_t* root = malloc(sizeof(Inode_t));
@@ -117,9 +111,13 @@ Inode_t* finode(int inum) {
 
 void commit_inode(int inum, Inode_t* inode) {
     int off = cp->inode_map_ptrs[inum / INODE_IN_PIECE];
-    lseek(fd, off, SEEK_SET);
     Inodemap_t im;
-    READ(fd, &im, sizeof(Inodemap_t));
+    if (off != -1) {
+        lseek(fd, off, SEEK_SET);
+        READ(fd, &im, sizeof(Inodemap_t));
+    } else {
+        memset(&im, -1, sizeof(Inodemap_t));
+    }
 
     int idx = inum % INODE_IN_PIECE;
     if (inode) {
@@ -136,6 +134,7 @@ void commit_inode(int inum, Inode_t* inode) {
 int findfree() {
     for (int i = 0; i < MAX_PIECE; i++) {
         int off = cp->inode_map_ptrs[i];
+        if (off == -1) return i * INODE_IN_PIECE;
         lseek(fd, off, SEEK_SET);
         Inodemap_t im;
         READ(fd, &im, sizeof(Inodemap_t));
@@ -202,8 +201,9 @@ int MFS_Creat(int pinum, int type, char* name) {
 
     int didx = 0;
     while (pinode->dptrs[didx] != -1) {
-                didx++;
+        didx++;
     }
+    assert(didx < MAX_DPTR);
 
     pinode->dptrs[didx] = cp->end;
 
@@ -306,6 +306,18 @@ int main(int argc, char* argv[]) {
     printf("%d\n", MFS_Unlink(0, "test"));
     printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "apple"));
     printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "banaa"));
+    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "5"));
+    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "6"));
+    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "7"));
+    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "8"));
+    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "9"));
+    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "10"));
+    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "11"));
+    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "12"));
+    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "13"));
+    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "14"));
+    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "15"));
+    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "16"));
     // printf("%d\n", MFS_Lookup(0, "."));
     // int sd = UDP_Open(10000);
     // assert(sd > -1);
