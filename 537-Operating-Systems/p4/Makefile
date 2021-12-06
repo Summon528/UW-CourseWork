@@ -9,5 +9,8 @@ client: mfs client.c
 mfs: mfs.c
 	gcc -shared -o libmfs.so -fPIC mfs.c
 
+print: print.c
+	gcc print.c udp.c -o print -O2
+
 clean:
 	rm server client libmfs.so

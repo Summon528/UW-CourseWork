@@ -1,4 +1,6 @@
 client
 libmfs.so
 server
+print
 *.img
+out.txt
