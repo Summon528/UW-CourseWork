@@ -1,10 +1,57 @@
 #include <assert.h>
-#include <stdbool.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "mfs.h"
-#include "udp.h"
+
+int UDP_Open(int port) {
+    int fd;
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+        perror("socket");
+        return 0;
+    }
+
+    // set up the bind
+    struct sockaddr_in my_addr;
+    bzero(&my_addr, sizeof(my_addr));
+
+    my_addr.sin_family = AF_INET;
+    my_addr.sin_port = htons(port);
+    my_addr.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(fd, (struct sockaddr*)&my_addr, sizeof(my_addr)) == -1) {
+        perror("bind");
+        close(fd);
+        return -1;
+    }
+
+    return fd;
+}
+
+int UDP_Write(int fd, struct sockaddr_in* addr, char* buffer, int n) {
+    int addr_len = sizeof(struct sockaddr_in);
+    int rc = sendto(fd, buffer, n, 0, (struct sockaddr*)addr, addr_len);
+    return rc;
+}
+
+int UDP_Read(int fd, struct sockaddr_in* addr, char* buffer, int n) {
+    int len = sizeof(struct sockaddr_in);
+    int rc =
+        recvfrom(fd, buffer, n, 0, (struct sockaddr*)addr, (socklen_t*)&len);
+    assert(len == sizeof(struct sockaddr_in));
+    return rc;
+}
 
 #define WRITE(fd, buf, len)           \
     if (write(fd, buf, len) != len) { \
@@ -26,8 +73,6 @@
         assert(0);                   \
     }
 
-#define BUFFER_SIZE (1000)
-#define MAX_NAME (28)
 #define MAX_INODE (4096)
 #define MAX_DPTR (14)
 #define INODE_IN_PIECE (16)
@@ -49,7 +94,7 @@ typedef struct Inode_t {
 } Inode_t;
 
 typedef struct {
-    char name[MAX_NAME];
+    char name[MFS_MAX_NAME];
     int inum;
 } Dent_t;
 
@@ -174,7 +219,7 @@ int MFS_Stat(int inum, MFS_Stat_t* stat) {
 }
 
 int MFS_Creat(int pinum, int type, char* name) {
-    if (strlen(name) > MAX_NAME) return -1;
+    if (strlen(name) > MFS_MAX_NAME) return -1;
 
     Inode_t* pinode = finode(pinum);
     int free_inum = findfree();
@@ -210,7 +255,7 @@ int MFS_Creat(int pinum, int type, char* name) {
     Dent_t de;
     memset(&de, 0, sizeof(Dent_t));
     de.inum = free_inum;
-    strncpy(de.name, name, MAX_NAME);
+    strncpy(de.name, name, MFS_MAX_NAME);
     WRITEEND(fd, &de, sizeof(Dent_t));
 
     commit_inode(pinum, pinode);
@@ -251,7 +296,7 @@ int MFS_Unlink(int pinum, char* name) {
         if (inode->dptrs[i] == -1) continue;
         lseek(fd, inode->dptrs[i], SEEK_SET);
         READ(fd, &de, sizeof(Dent_t));
-        if (strncmp(de.name, name, MAX_NAME) == 0) {
+        if (strncmp(de.name, name, MFS_MAX_NAME) == 0) {
             foundinum = de.inum;
             inode->dptrs[i] = -1;
             commit_inode(pinum, inode);
@@ -283,56 +328,47 @@ int main(int argc, char* argv[]) {
         assert(0);
     }
 
-    Inode_t* inode = finode(0);
-    printf("%d\n", inode->size);
-    printf("%d\n", inode->type);
-    printf("%x\n", inode->dptrs[0]);
-    printf("%x\n", inode->dptrs[1]);
+    int sd = UDP_Open(port);
+    while (1) {
+        struct sockaddr_in addr;
+        MFS_Req_t req;
+        int rc = UDP_Read(sd, &addr, (char*)&req, sizeof(MFS_Req_t));
+        if (rc < 0) {
+            puts("Bad UDP Read");
+            continue;
+        }
+        int ret;
+        MFS_Res_t res;
+        switch (req.type) {
+            case MLOOKUP:
+                res.ret = MFS_Lookup(req.lookup.pinum, req.lookup.name);
+                break;
+            case MSTAT:
+                res.ret = MFS_Stat(req.stat.inum, &res.stat);
+                break;
+            case MWRITE:
+                res.ret =
+                    MFS_Write(req.write.inum, req.write.buf, req.write.block);
+                break;
+            case MREAD:
+                res.ret = MFS_Read(req.read.inum, res.buf, req.read.block);
+                break;
+            case MCREAT:
+                res.ret =
+                    MFS_Creat(req.creat.pinum, req.creat.type, req.creat.name);
+                break;
+            case MUNLINK:
+                res.ret = MFS_Unlink(req.unlink.pinum, req.unlink.name);
+                break;
+            case MSHUTDOWN:
+                res.ret = MFS_Shutdown();
+                break;
+            default:
+                assert(0);
+                break;
+        }
+        UDP_Write(sd, &addr, (char*)&res, sizeof(MFS_Res_t));
+    }
 
-    printf("%d\n", MFS_Lookup(0, "."));
-    MFS_Stat_t stat;
-    MFS_Stat(0, &stat);
-    printf("%d\n", stat.type);
-    printf("%d\n", stat.size);
-    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "test"));
-
-    printf("%d\n", MFS_Creat(0, MFS_DIRECTORY, "test2"));
-    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "test3"));
-    char s[] = "hello world!";
-    printf("%d\n", MFS_Write(1, s, 2));
-    char buf[4096];
-    printf("%d\n", MFS_Read(1, buf, 2));
-    printf("%s\n", buf);
-    printf("%d\n", MFS_Unlink(0, "test"));
-    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "apple"));
-    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "banaa"));
-    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "5"));
-    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "6"));
-    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "7"));
-    printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "8"));
-    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "9"));
-    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "10"));
-    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "11"));
-    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "12"));
-    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "13"));
-    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "14"));
-    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "15"));
-    printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "16"));
-    // printf("%d\n", MFS_Lookup(0, "."));
-    // int sd = UDP_Open(10000);
-    // assert(sd > -1);
-    // while (1) {
-    //     struct sockaddr_in addr;
-    //     char message[BUFFER_SIZE];
-    //     printf("server:: waiting...\n");
-    //     int rc = UDP_Read(sd, &addr, message, BUFFER_SIZE);
-    //     printf("server:: read message [size:%d contents:(%s)]\n", rc,
-    //     message); if (rc > 0) {
-    //         char reply[BUFFER_SIZE];
-    //         sprintf(reply, "goodbye world");
-    //         rc = UDP_Write(sd, &addr, reply, BUFFER_SIZE);
-    //         printf("server:: reply\n");
-    //     }
-    // }
     return 0;
 }
