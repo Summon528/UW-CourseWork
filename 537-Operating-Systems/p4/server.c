@@ -222,6 +222,18 @@ int MFS_Creat(int pinum, int type, char* name) {
     if (strlen(name) > MFS_MAX_NAME) return -1;
 
     Inode_t* pinode = finode(pinum);
+
+    for (int i = 0; i < MAX_DPTR; i++) {
+        if (pinode->dptrs[i] == -1) continue;
+        Dent_t tmpde;
+        lseek(fd, pinode->dptrs[i], SEEK_SET);
+        READ(fd, &tmpde, sizeof(Dent_t));
+        if (strncmp(tmpde.name, name, MFS_MAX_NAME) == 0) {
+            free(pinode);
+            return 0;
+        }
+    }
+
     int free_inum = findfree();
     assert(free_inum != -1);
 
