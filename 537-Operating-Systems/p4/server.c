@@ -59,12 +59,9 @@ int UDP_Read(int fd, struct sockaddr_in* addr, char* buffer, int n) {
         assert(0);                    \
     }
 
-#define WRITEEND(fd, buf, len)        \
-    lseek(fd, 0, SEEK_END);           \
-    if (write(fd, buf, len) != len) { \
-        perror("write");              \
-        assert(0);                    \
-    }                                 \
+#define WRITEEND(fd, buf, len) \
+    lseek(fd, 0, SEEK_END);    \
+    WRITE(fd, buf, len)        \
     cp->end += len;
 
 #define READ(fd, buf, len)           \
@@ -77,6 +74,8 @@ int UDP_Read(int fd, struct sockaddr_in* addr, char* buffer, int n) {
 #define MAX_DPTR (14)
 #define INODE_IN_PIECE (16)
 #define MAX_PIECE (MAX_INODE / INODE_IN_PIECE)
+
+char ZBLOCK[MFS_BLOCK_SIZE] = {0};
 
 typedef struct {
     int end;
@@ -282,6 +281,12 @@ int MFS_Write(int inum, char* buffer, int block) {
     if (block < 0 || block >= MAX_DPTR) return -1;
     Inode_t* inode = finode(inum);
     if (inode == NULL || inode->type == MFS_DIRECTORY) return -1;
+    for (int i = 0; i < block; i++) {
+        if (inode->dptrs[i] != -1) continue;
+        inode->dptrs[i] = cp->end;
+        WRITEEND(fd, &ZBLOCK, MFS_BLOCK_SIZE);
+        inode->size += MFS_BLOCK_SIZE;
+    }
     if (inode->dptrs[block] == -1) inode->size += MFS_BLOCK_SIZE;
     inode->dptrs[block] = cp->end;
     WRITEEND(fd, buffer, MFS_BLOCK_SIZE);

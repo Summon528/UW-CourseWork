@@ -15,14 +15,14 @@ int main(int argc, char* argv[]) {
     printf("%d\n", MFS_Creat(0, MFS_DIRECTORY, "test2"));
     printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "test3"));
     char s[] = "hello world!";
-    printf("%d\n", MFS_Write(1, s, 2));
+    printf("%d\n", MFS_Write(3, s, 2));
     puts("==");
     MFS_Stat(1, &stat);
     printf("%d\n", stat.type);
     printf("%d\n", stat.size);
     puts("==");
     char buf[4096];
-    printf("%d\n", MFS_Read(1, buf, 2));
+    printf("%d\n", MFS_Read(3, buf, 2));
     printf("%s\n", buf);
     printf("%d\n", MFS_Unlink(0, "test"));
     printf("%d\n", MFS_Creat(0, MFS_REGULAR_FILE, "apple"));
