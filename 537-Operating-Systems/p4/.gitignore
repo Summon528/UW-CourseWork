@@ -4,3 +4,7 @@ server
 print
 *.img
 out.txt
+runtests.log
+testimage
+p4/
+tools/

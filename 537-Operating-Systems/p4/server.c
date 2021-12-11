@@ -1,57 +1,6 @@
-#include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 #include "mfs.h"
-
-int UDP_Open(int port) {
-    int fd;
-    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-        perror("socket");
-        return 0;
-    }
-
-    // set up the bind
-    struct sockaddr_in my_addr;
-    bzero(&my_addr, sizeof(my_addr));
-
-    my_addr.sin_family = AF_INET;
-    my_addr.sin_port = htons(port);
-    my_addr.sin_addr.s_addr = INADDR_ANY;
-
-    if (bind(fd, (struct sockaddr*)&my_addr, sizeof(my_addr)) == -1) {
-        perror("bind");
-        close(fd);
-        return -1;
-    }
-
-    return fd;
-}
-
-int UDP_Write(int fd, struct sockaddr_in* addr, char* buffer, int n) {
-    int addr_len = sizeof(struct sockaddr_in);
-    int rc = sendto(fd, buffer, n, 0, (struct sockaddr*)addr, addr_len);
-    return rc;
-}
-
-int UDP_Read(int fd, struct sockaddr_in* addr, char* buffer, int n) {
-    int len = sizeof(struct sockaddr_in);
-    int rc =
-        recvfrom(fd, buffer, n, 0, (struct sockaddr*)addr, (socklen_t*)&len);
-    assert(len == sizeof(struct sockaddr_in));
-    return rc;
-}
+#include "udp.h"
 
 #define WRITE(fd, buf, len)           \
     if (write(fd, buf, len) != len) { \
@@ -193,8 +142,10 @@ int findfree() {
 
 int MFS_Lookup(int pinum, char* name) {
     Inode_t* inode = finode(pinum);
-    if (inode == NULL) return -1;
-    assert(inode->type == MFS_DIRECTORY);
+    if (inode == NULL || inode->type != MFS_DIRECTORY) {
+        free(inode);
+        return -1;
+    }
     Dent_t de;
     for (int i = 0; inode->dptrs[i] != -1; i++) {
         lseek(fd, inode->dptrs[i], SEEK_SET);
@@ -221,6 +172,10 @@ int MFS_Creat(int pinum, int type, char* name) {
     if (strlen(name) > MFS_MAX_NAME) return -1;
 
     Inode_t* pinode = finode(pinum);
+    if (pinode->type != MFS_DIRECTORY) {
+        free(pinode);
+        return -1;
+    }
 
     for (int i = 0; i < MAX_DPTR; i++) {
         if (pinode->dptrs[i] == -1) continue;
@@ -259,8 +214,12 @@ int MFS_Creat(int pinum, int type, char* name) {
     while (pinode->dptrs[didx] != -1) {
         didx++;
     }
-    assert(didx < MAX_DPTR);
+    if (didx >= MAX_DPTR) {
+        free(pinode);
+        return -1;
+    }
 
+    pinode->size += 1;
     pinode->dptrs[didx] = cp->end;
 
     Dent_t de;
@@ -315,7 +274,14 @@ int MFS_Unlink(int pinum, char* name) {
         lseek(fd, inode->dptrs[i], SEEK_SET);
         READ(fd, &de, sizeof(Dent_t));
         if (strncmp(de.name, name, MFS_MAX_NAME) == 0) {
+            Inode_t* cinode = finode(de.inum);
+            if (cinode->type == MFS_DIRECTORY && cinode->size != 0) {
+                free(inode);
+                free(cinode);
+                return -1;
+            }
             foundinum = de.inum;
+            inode->size -= 1;
             inode->dptrs[i] = -1;
             commit_inode(pinum, inode);
             break;
@@ -380,7 +346,7 @@ int main(int argc, char* argv[]) {
                 res.ret = MFS_Unlink(req.unlink.pinum, req.unlink.name);
                 break;
             case MSHUTDOWN:
-                res.ret = MFS_Shutdown();
+                MFS_Shutdown();
                 break;
             default:
                 assert(0);
