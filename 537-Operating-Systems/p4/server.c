@@ -1,4 +1,5 @@
 
+#include "inmfs.h"
 #include "mfs.h"
 #include "udp.h"
 

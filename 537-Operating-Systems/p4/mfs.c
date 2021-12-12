@@ -1,5 +1,6 @@
 #include "mfs.h"
 
+#include "inmfs.h"
 #include "udp.h"
 
 struct sockaddr_in *addr = NULL;
