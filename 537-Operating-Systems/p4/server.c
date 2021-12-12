@@ -217,6 +217,7 @@ int MFS_Creat(int pinum, int type, char* name) {
         WRITEEND(fd, &tmpdb, sizeof(Dblock_t));
     }
     commit_inode(free_inum, cinode);
+    free(cinode);
 
     Dblock_t db;
     int eidx = -1;
@@ -253,7 +254,6 @@ int MFS_Creat(int pinum, int type, char* name) {
     commit_inode(pinum, pinode);
 
     free(pinode);
-    free(cinode);
     syncfs();
     return 0;
 }
@@ -283,12 +283,16 @@ int MFS_Read(int inum, char* buffer, int block) {
     if (inode == NULL || inode->dptrs[block] == -1) return -1;
     lseek(fd, inode->dptrs[block], SEEK_SET);
     READ(fd, buffer, MFS_BLOCK_SIZE);
+    free(inode);
     return 0;
 }
 
 int MFS_Unlink(int pinum, char* name) {
     Inode_t* inode = finode(pinum);
-    if (inode->type != MFS_DIRECTORY) return -1;
+    if (inode->type != MFS_DIRECTORY) {
+        free(inode);
+        return -1;
+    }
     Dblock_t db;
     int foundinum = -1;
     for (int i = 0; i < MAX_DPTR; i++) {
@@ -304,6 +308,7 @@ int MFS_Unlink(int pinum, char* name) {
                     free(cinode);
                     return -1;
                 }
+                free(cinode);
                 foundinum = db.dent[j].inum;
                 inode->size -= 1;
                 inode->dptrs[i] = cp->end;
@@ -316,6 +321,7 @@ int MFS_Unlink(int pinum, char* name) {
         if (foundinum != -1) break;
     }
 
+    free(inode);
     if (foundinum == -1) return 0;
     commit_inode(foundinum, NULL);
     syncfs();

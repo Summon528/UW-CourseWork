@@ -2,15 +2,9 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "C/C++: gcc build active file",
-            "command": "/usr/bin/gcc",
-            "args": [
-                "-fdiagnostics-color=always",
-                "-g",
-                "${file}",
-                "-o",
-                "${fileDirname}/${fileBasenameNoExtension}"
-            ],
+            "label": "make",
+            "command": "make",
+            "args": [],
             "options": {
                 "cwd": "${fileDirname}"
             },

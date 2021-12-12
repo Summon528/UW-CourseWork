@@ -39,5 +39,6 @@ int main(int argc, char* argv[]) {
     printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "14"));
     printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "15"));
     printf("%d\n", MFS_Creat(2, MFS_REGULAR_FILE, "16"));
+    MFS_Shutdown();
     return 0;
 }
