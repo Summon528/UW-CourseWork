@@ -36,6 +36,11 @@ typedef struct {
     int inum;
 } Dent_t;
 
+#define MAX_FILE_IN_DBLOCK (MFS_BLOCK_SIZE / sizeof(Dent_t))
+typedef struct {
+    Dent_t dent[MAX_FILE_IN_DBLOCK];
+} Dblock_t;
+
 Checkpoint_t* cp;
 int fd;
 
@@ -71,11 +76,14 @@ int main() {
                 if (inode.dptrs[k] == -1) continue;
                 printf("\t\t\tdptrs[%d]: 0x%x\n", k, inode.dptrs[k]);
                 if (inode.type == MFS_DIRECTORY) {
-                    Dent_t dent;
+                    Dblock_t db;
                     lseek(fd, inode.dptrs[k], SEEK_SET);
-                    read(fd, &dent, sizeof(Dent_t));
-                    printf("\t\t\t\tname: %s\n", dent.name);
-                    printf("\t\t\t\tinum: %d\n", dent.inum);
+                    read(fd, &db, sizeof(Dblock_t));
+                    for (int l = 0; l < MAX_FILE_IN_DBLOCK; l++) {
+                        if (db.dent[l].inum == -1) continue;
+                        printf("\t\t\t\tname: %s\n", db.dent[l].name);
+                        printf("\t\t\t\tinum: %d\n", db.dent[l].inum);
+                    }
                 } else {
                     char buf[MFS_BLOCK_SIZE];
                     memset(&buf, 0, MFS_BLOCK_SIZE);

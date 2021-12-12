@@ -46,6 +46,11 @@ typedef struct {
     int inum;
 } Dent_t;
 
+#define MAX_FILE_IN_DBLOCK (MFS_BLOCK_SIZE / sizeof(Dent_t))
+typedef struct {
+    Dent_t dent[MAX_FILE_IN_DBLOCK];
+} Dblock_t;
+
 Checkpoint_t* cp;
 int fd;
 
@@ -53,7 +58,7 @@ void initfs() {
     memset(cp, -1, sizeof(Checkpoint_t));
     cp->inode_map_ptrs[0] = sizeof(Checkpoint_t);
     int root_off = cp->inode_map_ptrs[0] + sizeof(Inodemap_t);
-    cp->end = root_off + sizeof(Inode_t) + sizeof(Dent_t) * 2;
+    cp->end = root_off + sizeof(Inode_t) + sizeof(Dblock_t);
     WRITE(fd, cp, sizeof(Checkpoint_t));
     Inodemap_t* im = malloc(sizeof(Inodemap_t));
     memset(im->inode_ptrs, -1, sizeof(im->inode_ptrs));
@@ -66,18 +71,18 @@ void initfs() {
     root->type = MFS_DIRECTORY;
     root->size = 0;
     root->dptrs[0] = root_off + sizeof(Inode_t);
-    root->dptrs[1] = root_off + sizeof(Inode_t) + sizeof(Dent_t);
     WRITE(fd, root, sizeof(Inode_t));
     free(root);
 
-    Dent_t* de = calloc(1, sizeof(Dent_t));
-    de->name[0] = '.';
-    de->inum = 0;
-    WRITE(fd, de, sizeof(Dent_t));
+    Dblock_t dblock;
+    memset(&dblock, -1, sizeof(Dblock_t));
+    dblock.dent[0].inum = 0;
+    strcpy(dblock.dent[0].name, ".");
 
-    de->name[1] = '.';
-    WRITE(fd, de, sizeof(Dent_t));
-    free(de);
+    dblock.dent[1].inum = 0;
+    strcpy(dblock.dent[1].name, "..");
+
+    WRITE(fd, &dblock, sizeof(Dblock_t));
     fsync(fd);
 }
 
@@ -146,13 +151,15 @@ int MFS_Lookup(int pinum, char* name) {
         free(inode);
         return -1;
     }
-    Dent_t de;
+    Dblock_t db;
     for (int i = 0; inode->dptrs[i] != -1; i++) {
         lseek(fd, inode->dptrs[i], SEEK_SET);
-        READ(fd, &de, sizeof(Dent_t));
-        if (strcmp(name, de.name) == 0) {
-            free(inode);
-            return de.inum;
+        READ(fd, &db, sizeof(Dblock_t));
+        for (int j = 0; j < MAX_FILE_IN_DBLOCK; j++) {
+            if (strcmp(name, db.dent[j].name) == 0) {
+                free(inode);
+                return db.dent[j].inum;
+            }
         }
     }
     free(inode);
@@ -179,12 +186,15 @@ int MFS_Creat(int pinum, int type, char* name) {
 
     for (int i = 0; i < MAX_DPTR; i++) {
         if (pinode->dptrs[i] == -1) continue;
-        Dent_t tmpde;
+        Dblock_t tmpdb;
         lseek(fd, pinode->dptrs[i], SEEK_SET);
-        READ(fd, &tmpde, sizeof(Dent_t));
-        if (strncmp(tmpde.name, name, MFS_MAX_NAME) == 0) {
-            free(pinode);
-            return 0;
+        READ(fd, &tmpdb, sizeof(Dblock_t));
+        for (int j = 0; j < MAX_FILE_IN_DBLOCK; j++) {
+            if (tmpdb.dent[j].inum == -1) continue;
+            if (strncmp(tmpdb.dent[j].name, name, MFS_MAX_NAME) == 0) {
+                free(pinode);
+                return 0;
+            }
         }
     }
 
@@ -197,36 +207,48 @@ int MFS_Creat(int pinum, int type, char* name) {
     cinode->size = 0;
     if (type == MFS_DIRECTORY) {
         cinode->dptrs[0] = cp->end;
-        Dent_t tmpde;
-        memset(&tmpde, 0, sizeof(Dent_t));
-        tmpde.name[0] = '.';
-        tmpde.inum = free_inum;
-        WRITEEND(fd, &tmpde, sizeof(Dent_t));
+        Dblock_t tmpdb;
+        memset(&tmpdb, -1, sizeof(Dblock_t));
+        tmpdb.dent[0].inum = free_inum;
+        strcpy(tmpdb.dent[0].name, ".");
 
-        cinode->dptrs[1] = cp->end;
-        tmpde.name[1] = '.';
-        tmpde.inum = pinum;
-        WRITEEND(fd, &tmpde, sizeof(Dent_t));
+        tmpdb.dent[1].inum = pinum;
+        strcpy(tmpdb.dent[1].name, "..");
+        WRITEEND(fd, &tmpdb, sizeof(Dblock_t));
     }
     commit_inode(free_inum, cinode);
 
-    int didx = 0;
-    while (pinode->dptrs[didx] != -1) {
-        didx++;
+    Dblock_t db;
+    int eidx = -1;
+    for (int i = 0; i < MAX_DPTR; i++) {
+        if (pinode->dptrs[i] == -1) {
+            pinode->dptrs[i] = cp->end;
+            memset(&db, -1, sizeof(Dblock_t));
+            eidx = 0;
+            break;
+        } else {
+            lseek(fd, pinode->dptrs[i], SEEK_SET);
+            READ(fd, &db, sizeof(Dblock_t));
+            for (int j = 0; j < MAX_FILE_IN_DBLOCK; j++) {
+                if (db.dent[j].inum == -1) {
+                    eidx = j;
+                    pinode->dptrs[i] = cp->end;
+                    break;
+                }
+            }
+            if (eidx != -1) break;
+        }
     }
-    if (didx >= MAX_DPTR) {
+
+    if (eidx == -1) {
         free(pinode);
         return -1;
     }
 
     pinode->size += 1;
-    pinode->dptrs[didx] = cp->end;
-
-    Dent_t de;
-    memset(&de, 0, sizeof(Dent_t));
-    de.inum = free_inum;
-    strncpy(de.name, name, MFS_MAX_NAME);
-    WRITEEND(fd, &de, sizeof(Dent_t));
+    db.dent[eidx].inum = free_inum;
+    strncpy(db.dent[eidx].name, name, MFS_MAX_NAME);
+    WRITEEND(fd, &db, sizeof(Dblock_t));
 
     commit_inode(pinum, pinode);
 
@@ -267,26 +289,33 @@ int MFS_Read(int inum, char* buffer, int block) {
 int MFS_Unlink(int pinum, char* name) {
     Inode_t* inode = finode(pinum);
     if (inode->type != MFS_DIRECTORY) return -1;
-    Dent_t de;
+    Dblock_t db;
     int foundinum = -1;
     for (int i = 0; i < MAX_DPTR; i++) {
         if (inode->dptrs[i] == -1) continue;
         lseek(fd, inode->dptrs[i], SEEK_SET);
-        READ(fd, &de, sizeof(Dent_t));
-        if (strncmp(de.name, name, MFS_MAX_NAME) == 0) {
-            Inode_t* cinode = finode(de.inum);
-            if (cinode->type == MFS_DIRECTORY && cinode->size != 0) {
-                free(inode);
-                free(cinode);
-                return -1;
+        READ(fd, &db, sizeof(Dblock_t));
+        for (int j = 0; j < MAX_FILE_IN_DBLOCK; j++) {
+            if (db.dent[j].inum == -1) continue;
+            if (strncmp(db.dent[j].name, name, MFS_MAX_NAME) == 0) {
+                Inode_t* cinode = finode(db.dent[j].inum);
+                if (cinode->type == MFS_DIRECTORY && cinode->size != 0) {
+                    free(inode);
+                    free(cinode);
+                    return -1;
+                }
+                foundinum = db.dent[j].inum;
+                inode->size -= 1;
+                inode->dptrs[i] = cp->end;
+                memset(&db.dent[j], -1, sizeof(Dent_t));
+                WRITEEND(fd, &db, sizeof(Dblock_t));
+                commit_inode(pinum, inode);
+                break;
             }
-            foundinum = de.inum;
-            inode->size -= 1;
-            inode->dptrs[i] = -1;
-            commit_inode(pinum, inode);
-            break;
         }
+        if (foundinum != -1) break;
     }
+
     if (foundinum == -1) return 0;
     commit_inode(foundinum, NULL);
     syncfs();
@@ -295,6 +324,7 @@ int MFS_Unlink(int pinum, char* name) {
 
 int MFS_Shutdown() {
     syncfs();
+    free(cp);
     exit(0);
 }
 
@@ -324,6 +354,7 @@ int main(int argc, char* argv[]) {
         }
         int ret;
         MFS_Res_t res;
+        memset(&res, 0, sizeof(MFS_Res_t));
         switch (req.type) {
             case MLOOKUP:
                 res.ret = MFS_Lookup(req.lookup.pinum, req.lookup.name);
