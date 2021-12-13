@@ -1,12 +1,12 @@
-all: client server
+all: client server libmfs.so
 
-server: server.c udp.c
+server: server.c udp.c udp.h proto.h
 	gcc server.c udp.c -o server -O2
 
-client: mfs client.c
+client: libmfs.so client.c
 	gcc client.c -o client -O2 -L. -lmfs
 
-mfs: mfs.c udp.c
+libmfs.so: mfs.c udp.c udp.h proto.h
 	gcc -shared -o libmfs.so -fPIC mfs.c udp.c
 
 print: print.c

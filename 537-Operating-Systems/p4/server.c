@@ -1,6 +1,6 @@
 
-#include "inmfs.h"
 #include "mfs.h"
+#include "proto.h"
 #include "udp.h"
 
 #define WRITE(fd, buf, len)           \
