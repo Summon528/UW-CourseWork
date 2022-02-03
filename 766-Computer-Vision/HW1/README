@@ -1,0 +1,1 @@
+This homework is pretty straightforward as I mostly follow the direction given in the source code files. The only configurable parameter is the threshold value and I chose 0.5 since it is the default and it seems to work well.
