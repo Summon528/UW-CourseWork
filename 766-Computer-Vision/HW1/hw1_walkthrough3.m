@@ -3,7 +3,7 @@
 % -------------------------------------------------------------------------
 
 % Load the image "I_Love_New_York.png" into memory
-%iheartny_img = imread(???);
+iheartny_img = imread("I_Love_New_York.png");
 
 % Display the image
 figure, imshow(iheartny_img);
@@ -15,21 +15,21 @@ gray_iheartny_img = rgb2gray(iheartny_img);
 figure, imshow(gray_iheartny_img);
 
 % Convert the grayscale image into a binary mask using a threshold value
-%threshold = ???;
+threshold = 0.5;
 
 binary_mask = im2bw(gray_iheartny_img, threshold);
 
 % Load the image "nyc.png" into memory
-%nyc_img = imread(???);
+nyc_img = imread("nyc.png");
 
 % Resize nyc_img so the image height is 500 pixels
-%height = size(nyc_img, ???);
+height = size(nyc_img, 1);
 
 scale = 500/height;
 small_nyc = imresize(nyc_img, scale);
 
 % Resize ILoveNY binary_mask so that its height is 400 pixels
-%scale = ???;
+scale = 400 / size(binary_mask, 1);
 resized_mask = imresize(binary_mask, scale);
 
 imshow(resized_mask);
@@ -54,7 +54,10 @@ iresized_mask = [zeros(mask_height, width_diff/2),...
 imshow(iresized_mask); 
 
 % Pad top and bottom
-%iresized_mask = ???
+nyc_width = size(small_nyc, 2);
+iresized_mask = [zeros(height_diff/2, nyc_width);...
+    iresized_mask; zeros(height_diff/2, nyc_width)];
+
 % Cast the mask to logical
 iresized_mask = logical(iresized_mask);
 imshow(iresized_mask);
@@ -76,12 +79,16 @@ red_channel(iresized_mask) = red(1);
 love_small_nyc(:, :, 1) = red_channel;
 
 %???
-%love_small_nyc(:, :, 2) = ???;
+green_channel = love_small_nyc(:, :, 2);
+green_channel(iresized_mask) = red(2);
+love_small_nyc(:, :, 2) = green_channel;
 
 %???
-%love_small_nyc(:, :, 2) = ???;
+blue_channel = love_small_nyc(:, :, 3);
+blue_channel(iresized_mask) = red(3);
+love_small_nyc(:, :, 3) = blue_channel;
 
 figure, imshow(love_small_nyc);
 
 % Save the collage as output_nyc.png
-%imwrite(???, ???);
+imwrite(love_small_nyc, "output_nyc.png");
