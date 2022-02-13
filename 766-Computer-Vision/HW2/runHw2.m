@@ -33,7 +33,7 @@ runTests(varargin, fun_handles);
 function honesty()
 % Type your full name and uni (both in string) to state your agreement 
 % to the Code of Academic Integrity.
-signAcademicHonestyPolicy('Peter Parker', 'pp117');
+signAcademicHonestyPolicy('Cody Tseng', 'ctseng27');
 
 %--------------------------------------------------------------------------
 % Test for Walkthrough 1: Morphological operations
