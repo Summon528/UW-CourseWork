@@ -50,7 +50,7 @@ hw2_walkthrough1;
 %%
 function challenge1a()
 img_list = {'two_objects', 'many_objects_1', 'many_objects_2'};
-%threshold_list = [???, ???, ???];
+threshold_list = [0.5, 0.5, 0.5];
 
 for i = 1:length(img_list)
     orig_img = imread([img_list{i} '.png']);
