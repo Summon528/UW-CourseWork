@@ -22,6 +22,7 @@ function output_img = recognizeObjects(orig_img, labeled_img, obj_db)
         end
     end
     output_img = saveAnnotatedImg(fh1);
+    delete(fh1);
 end
 
 function annotated_img = saveAnnotatedImg(fh)

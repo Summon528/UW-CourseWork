@@ -66,6 +66,7 @@ function [db, out_img] = compute2DProperties(orig_img, labeled_img)
         plot([x x2],[y y2], 'LineWidth', 2)
     end
     out_img = saveAnnotatedImg(fh1);
+    delete(fh1);
 end
 
 %%
