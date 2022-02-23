@@ -14,8 +14,8 @@ function output_img = recognizeObjects(orig_img, labeled_img, obj_db)
                 y = db(2, i);
                 plot(x, y, 'r+', 'MarkerSize', 20, 'LineWidth', 2);
                 L = 50;
-                x2=x+(L*cos(db(5, i)));
-                y2=y+(L*sin(db(5, i)));
+                x2=x+(L*cosd(db(5, i)));
+                y2=y+(L*sind(db(5, i)));
                 plot([x x2],[y y2], 'LineWidth', 2)
                 %%break
             end

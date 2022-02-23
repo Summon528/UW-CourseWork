@@ -48,7 +48,7 @@ function [db, out_img] = compute2DProperties(orig_img, labeled_img)
     theta2 = theta + pi / 2;
     emax = a .* sin(theta2).^2 - b .* sin(theta2) .* cos(theta2) + c .* cos(theta2).^2;
     db(4,:) = emin;
-    db(5,:) = theta;
+    db(5,:) = rad2deg(theta);
     db(6,:) = emin./emax;
     db(7,:) = emin./area;
 
