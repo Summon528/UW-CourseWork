@@ -47,9 +47,12 @@ hw3_walkthrough1;
 %%
 function challenge1a()
 img_list = {'hough_1', 'hough_2', 'hough_3'};
+threshold = [0.06, 0.1, 0.02];
 for i = 1:length(img_list)
     img = imread([img_list{i} '.png']);
-    %edge_img = edge(??);
+    imshow(img)
+    edge_img = edge(img, 'canny', threshold(i));
+    imshow(edge_img)
     
         
     % Note: The output from edge is an image of logical type.
