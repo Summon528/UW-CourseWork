@@ -32,7 +32,7 @@ runTests(varargin, fun_handles);
 function honesty()
 % Type your full name and uni (both in string) to state your agreement 
 % to the Code of Academic Integrity.
-signAcademicHonestyPolicy('Peter Parker', 'pp117');
+signAcademicHonestyPolicy('Cody Tseng', 'ctseng27');
 
 %--------------------------------------------------------------------------
 % Tests for Walkthrough 1: Image processing
@@ -47,7 +47,7 @@ hw3_walkthrough1;
 %%
 function challenge1a()
 img_list = {'hough_1', 'hough_2', 'hough_3'};
-threshold = [0.06, 0.1, 0.02];
+threshold = [0.06, 0.1, 0.03];
 for i = 1:length(img_list)
     img = imread([img_list{i} '.png']);
     imshow(img)
@@ -64,8 +64,8 @@ end
 function challenge1b()
 img_list = {'hough_1', 'hough_2', 'hough_3'};
 
-% rho_num_bins = ??;
-% theta_num_bins = ??;
+rho_num_bins = 400;
+theta_num_bins = 400;
 for i = 1:length(img_list)
     img = imread(['edge_' img_list{i} '.png']);
     hough_accumulator = generateHoughAccumulator(img,...
@@ -81,7 +81,7 @@ end
 function challenge1c()
 
 img_list = {'hough_1', 'hough_2', 'hough_3'};
-%hough_threshold = [?? ?? ??];
+hough_threshold = [130 120 135];
 
 for i = 1:length(img_list)
     orig_img = imread([img_list{i} '.png']);
@@ -101,12 +101,13 @@ end
 function challenge1d()
 
 img_list = {'hough_1', 'hough_2', 'hough_3'};
-%hough_threshold = [?? ?? ??];
+hough_threshold = [130 120 135];
 
 for i = 1:length(img_list)
     orig_img = imread([img_list{i} '.png']);
     hough_img = imread(['accumulator_' img_list{i} '.png']);
-    line_img = lineSegmentFinder(orig_img, hough_img, hough_threshold(i));
+    edge_img = imread(['edge_' img_list{i} '.png']);
+    line_img = lineSegmentFinder(orig_img, hough_img, hough_threshold(i), edge_img);
     
     % Note: The values of line_img should be between 0 and 255 and the
     % data type should be uint8.
