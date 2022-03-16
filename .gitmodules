@@ -1,3 +1,15 @@
 [submodule "642-Intro-to-Security/UW-CS642"]
-	path = 642-Intro-to-Security/UW-CS642
-	url = https://github.com/Summon528/UW-CS642
+	path = 642-Intro-to-Security/HW1345
+	url = https://github.com/ctseng-uw/642
+[submodule "782-Advanced-Computer-Security/Rootkit"]
+	path = 782-Advanced-Computer-Security/Rootkit
+	url = https://github.com/ctseng-uw/782-Rootkit
+[submodule "739-Distributed-System/Project1"]
+	path = 739-Distributed-System/Project1
+	url = https://github.com/ctseng-uw/739-Project1
+[submodule "739-Distributed-System/Project2"]
+	path = 739-Distributed-System/Project2
+	url = https://github.com/ctseng-uw/739-Project2
+[submodule "782-Advanced-Computer-Security/Paper"]
+	path = 782-Advanced-Computer-Security/Paper
+	url = https://github.com/ctseng-uw/782-Paper
