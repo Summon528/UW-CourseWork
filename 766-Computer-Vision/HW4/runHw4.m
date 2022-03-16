@@ -86,8 +86,8 @@ bg_img = im2double(imread('Osaka.png')); %imshow(bg_img);
 portrait_img = im2double(imread('portrait_small.png')); %imshow(portrait_img);
 
 % Estimate homography
-% portrait_pts = [xp1 yp1; xp2 yp2; xp3 yp3; xp4 yp4];
-% bg_pts = [xb1 yb1; xb2 yb2; xb3 yb3; xb4 yb4];
+portrait_pts = [0 0; 327 0; 327 400; 0 400];
+bg_pts = [101 19; 276 70; 285 425; 83 442];
 
 H_3x3 = computeHomography(portrait_pts, bg_pts);
 
@@ -99,6 +99,7 @@ dest_canvas_width_height = [size(bg_img, 2), size(bg_img, 1)];
 mask = ~mask;
 % Superimpose the image
 result = bg_img .* cat(3, mask, mask, mask) + dest_img;
+
 %figure, imshow(result);
 imwrite(result, 'Van_Gogh_in_Osaka.png');
 
