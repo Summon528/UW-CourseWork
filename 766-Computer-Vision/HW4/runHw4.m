@@ -34,7 +34,7 @@ runTests(varargin, fun_handles);
 function honesty()
 % Type your full name and uni (both in string) to state your agreement 
 % to the Code of Academic Integrity.
-signAcademicHonestyPolicy('Peter Paker', 'pp1917');
+signAcademicHonestyPolicy('Cody Tseng', 'ctseng27');
 
 %--------------------------------------------------------------------------
 % Tests for Challenge 1: Panoramic Photo App
@@ -47,9 +47,9 @@ function challenge1a()
 orig_img = imread('portrait.png'); 
 warped_img = imread('portrait_transformed.png');
 
-% Choose 4 corresponding points (use ginput)
-%src_pts_nx2  = [xs1 ys1; xs2 ys2; xs3 ys3; xs4 ys4];
-%dest_pts_nx2 = [xd1 yd1; xd2 yd2; xd3 yd3; xd4 yd4];
+% Choose 4 corresponding points (use ginput)]
+src_pts_nx2 = [347 313; 413 312; 334 508; 385 572];
+dest_pts_nx2 = [273 285;335 281; 256 458;306 527];
 
 H_3x3 = computeHomography(src_pts_nx2, dest_pts_nx2);
 % src_pts_nx2 and dest_pts_nx2 are the coordinates of corresponding points 
@@ -66,7 +66,7 @@ H_3x3 = computeHomography(src_pts_nx2, dest_pts_nx2);
 % first column contains the x coordinates and the second column contains
 % the y coordinates.
 
-%test_pts_nx2 = [xt1 yt1; xt2 yt2; xt3 yt3; xt4 yt4];
+test_pts_nx2 = [262 502; 496 344; 392 475; 159 101];
 
 % Apply homography
 dest_pts_nx2 = applyHomography(H_3x3, test_pts_nx2);
