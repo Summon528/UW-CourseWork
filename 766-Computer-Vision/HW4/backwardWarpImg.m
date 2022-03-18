@@ -17,6 +17,8 @@ function [mask, result_img] = backwardWarpImg(src_img, resultToSrc_H,...
                 continue
             end
             result_img(y, x, :) = src_img(y_s, x_s, :);
-            mask(y, x) = 1;
+            if sum(src_img(y_s, x_s, :)) ~= 0
+                mask(y, x) = 1;
+            end
         end
     end
