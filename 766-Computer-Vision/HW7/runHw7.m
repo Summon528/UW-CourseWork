@@ -79,19 +79,20 @@ function challenge2a
 %-------------------
 data_params.data_dir = 'walking_person';
 data_params.out_dir = 'walking_person_result';
-data_params.frame_ids = [1:20];
+data_params.frame_ids = [1:250];
 data_params.genFname = @(x)([sprintf('frame%d.png', x)]);
 
 % ****** IMPORTANT ******
 % In your submission, replace the call to "chooseTarget" with actual parameters
 % to specify the target of interest
-tracking_params.rect = chooseTarget(data_params);
-% tracking_params.rect = [xmin ymin width height];
+% tracking_params.rect = chooseTarget(data_params);
+%tracking_params.rect = [189 61 45 128];
+tracking_params.rect = [204 85 24 38];
 
 % Half size of the search window
-% tracking_params.search_half_window_size = ?;
+tracking_params.search_half_window_size = 3;
 % Number of bins in the color histogram
-% tracking_params.bin_n = ?;                    
+tracking_params.bin_n = 10; 
 
 % Pass the parameters to trackingTester
 trackingTester(data_params, tracking_params);
@@ -106,19 +107,19 @@ function challenge2b
 %-------------------
 data_params.data_dir = 'rolling_ball';
 data_params.out_dir = 'rolling_ball_result';
-data_params.frame_ids = [1:20];
+data_params.frame_ids = [1:250];
 data_params.genFname = @(x)([sprintf('frame%d.png', x)]);
 
 % ****** IMPORTANT ******
 % In your submission, replace the call to "chooseTarget" with actual parameters
 % to specify the target of interest
-tracking_params.rect = chooseTarget(data_params);
-% tracking_params.rect = [xmin ymin width height];
+% tracking_params.rect = chooseTarget(data_params);
+tracking_params.rect = [155 131 40 45];
 
 % Half size of the search window
-% tracking_params.search_half_window_size = ?;
+tracking_params.search_half_window_size = 5;
 % Number of bins in the color histogram
-% tracking_params.bin_n = ?;           
+tracking_params.bin_n = 30;
 
 % Pass the parameters to trackingTester
 trackingTester(data_params, tracking_params);
@@ -133,19 +134,19 @@ function challenge2c
 %-------------------
 data_params.data_dir = 'basketball';
 data_params.out_dir = 'basketball_result';
-data_params.frame_ids = [1:20];
+data_params.frame_ids = [1:250];
 data_params.genFname = @(x)([sprintf('frame%d.png', x)]);
 
 % ****** IMPORTANT ******
 % In your submission, replace the call to "chooseTarget" with actual parameters
 % to specify the target of interest
-tracking_params.rect = chooseTarget(data_params);
-% tracking_params.rect = [xmin ymin width height];
+%tracking_params.rect = chooseTarget(data_params);
+tracking_params.rect = [316 238 25 71];
 
 % Half size of the search window
-% tracking_params.search_half_window_size = ?;
+tracking_params.search_half_window_size = 10;
 % Number of bins in the color histogram
-% tracking_params.bin_n = ?;           
+tracking_params.bin_n = 20; 
 
 % Pass the parameters to trackingTester
 trackingTester(data_params, tracking_params);
