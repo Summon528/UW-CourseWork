@@ -7,11 +7,10 @@ set(fh, 'WindowStyle', 'normal');
 % The following two lines just to make the figure true size to the
 % displayed image. The reason will become clear later.
 img = getimage(fh);
-truesize(fh, [size(img, 1), size(img, 2)]);
+truesize(fh, [size(img, 1), size(img, 2)] .* 5);
 
 % getframe does a screen capture of the figure window, as a result, the
-% displayed figure has to be in true size. 
-frame = getframe(fh);
+% displayed figure has to be in true size.
 frame = getframe(fh);
 pause(0.5); 
 % Because getframe tries to perform a screen capture. it somehow 

@@ -28,7 +28,7 @@ for a=1:(h-1)/m:h
 end
 
 fh = figure;
-imshow(img1)
+imshow(img1);
 hold on;
 quiver(X,Y,U,V, "off")
 axis equal
