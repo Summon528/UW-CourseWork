@@ -342,7 +342,7 @@ int main(int argc, char* argv[]) {
     cp = malloc(sizeof(Checkpoint_t));
     if ((fd = open(img, O_CREAT | O_RDWR | O_EXCL, 0644)) >= 0) {
         initfs();
-    } else if (errno = EEXIST) {
+    } else if (errno == EEXIST) {
         fd = open(img, O_RDWR);
         READ(fd, cp, sizeof(Checkpoint_t));
     } else {
