@@ -13,3 +13,9 @@
 [submodule "782-Advanced-Computer-Security/Paper"]
 	path = 782-Advanced-Computer-Security/Paper
 	url = https://github.com/ctseng-uw/782-Paper
+[submodule "739-Distributed-System/Project3"]
+	path = 739-Distributed-System/Project3
+	url = https://github.com/ctseng-uw/739-Project3
+[submodule "739-Distributed-System/Project4"]
+	path = 739-Distributed-System/Project4
+	url = https://github.com/c5h11oh/DistributedSystems-Chubby
