@@ -1,5 +1,5 @@
 const path = require('path');
-const fs   = require('fs');
+const fs = require('fs');
 /* In this assignment you will get a chance to explore a number of JavaScript
  * language features and Node.js APIs by implementing a simple module system.
  * Specifically, you will implement a require()-like function that will load
@@ -40,9 +40,9 @@ const fs   = require('fs');
  * expressions. (Though, in practice they often come in handy and are written
  * more cleverly than we did below.)
  */
-const dot    = new RegExp('^./');
+const dot = new RegExp('^./');
 const dotdot = new RegExp('^../');
-const slash  = new RegExp('^/');
+const slash = new RegExp('^/');
 
 /* We are going to load our built-ins module that that handles require()ing
  * built-in modules. */
@@ -77,7 +77,7 @@ function makeRequire(dirname) {
    * assuming dirname to be the containing dir of the module that will use the
    * returned require() function.
    */
-  return function (name) {
+  return function(name) {
     // 1. If name corresponds to a core library such as 'fs', just return the
     // built-in module:
     if (builtIns.isBuiltIn(name)) {
@@ -188,8 +188,8 @@ function loadJSFile(resolvedName) {
   // Read the file contents
   const code = fs.readFileSync(resolvedName, 'utf8');
   // Create the module object (much as we did in class):
-  const mod = { 
-    exports : {} // this will be populate by the module code
+  const mod = {
+    exports: {} // this will be populate by the module code
   };
   // Add module object to the cache before loading the module code; this
   // ensures that we can load modules that depend on eachother.
@@ -197,12 +197,12 @@ function loadJSFile(resolvedName) {
 
   // Create variables that are "global" to the module:
   const filename = resolvedName; // name of the module
-  const dirname  = path.dirname(filename); // containing directory
+  const dirname = path.dirname(filename); // containing directory
   const require_ = makeRequire(dirname);
   // Wrap the code in a function expression and eval it. Foreshadowing to the
   // lambda calculus lecture: this capture the "global" (free) variables of the
   // module.
-  const moduleFunc = 
+  const moduleFunc =
     eval(`(function (exports, require, module, __filename, __dirname) {${code}});`);
   // Call the function expression with:
   // - `this` set to mod.exports

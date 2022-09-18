@@ -1,5 +1,5 @@
-const path     = require('path');
-const fs       = require('fs');
+const path = require('path');
+const fs = require('fs');
 const require_ = require('./require.js');
 
 /* In this module we are going to extend require()'s support to load '.json'

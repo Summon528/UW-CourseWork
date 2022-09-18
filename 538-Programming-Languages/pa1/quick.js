@@ -84,7 +84,7 @@ const sumList = (ls) => fold_left((acc, x) => acc + x, 0, ls);
   Implement fold_left below following the above description and example.
 */
 
-const fold_left = function (f, base, ls) {
+const fold_left = function(f, base, ls) {
   if (ls.size == 0) {
     return base;
   }
@@ -190,7 +190,7 @@ const partition = (g, ls) => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
 
 
 const quicksort = function(ls) {
-  if(ls.size <= 1) {
+  if (ls.size <= 1) {
     return ls;
   }
 
@@ -205,16 +205,16 @@ const quicksort = function(ls) {
   may wish to come up with additional tests and examples.
 */
 
-assert(sumList(List([1,2,3,4])) == 10);
-assert(map((x) => x * 2, List([1,2,3,4])).equals(List([2,4,6,8])));
-assert(filter((x) => x <= 2, List([1,2,3,4])).equals(List([1,2])));
-assert(filter((x) => x % 2 == 0, List([1,2,3,4])).equals(List([2,4])));
-assert(partition((x) => x <= 2, List([1,2,3,4])).equals(List([List([1,2]), List([3,4])])));
-assert(partition((x) => x % 2 == 0, List([1,2,3,4])).equals(List([List([2,4]), List([1,3])])));
-assert(quicksort(List([4,7,3,6,8,7,1,2,2,1,5])).equals(List([1,1,2,2,3,4,5,6,7,7,8])));
+assert(sumList(List([1, 2, 3, 4])) == 10);
+assert(map((x) => x * 2, List([1, 2, 3, 4])).equals(List([2, 4, 6, 8])));
+assert(filter((x) => x <= 2, List([1, 2, 3, 4])).equals(List([1, 2])));
+assert(filter((x) => x % 2 == 0, List([1, 2, 3, 4])).equals(List([2, 4])));
+assert(partition((x) => x <= 2, List([1, 2, 3, 4])).equals(List([List([1, 2]), List([3, 4])])));
+assert(partition((x) => x % 2 == 0, List([1, 2, 3, 4])).equals(List([List([2, 4]), List([1, 3])])));
+assert(quicksort(List([4, 7, 3, 6, 8, 7, 1, 2, 2, 1, 5])).equals(List([1, 1, 2, 2, 3, 4, 5, 6, 7, 7, 8])));
 
 exports.fold_left = fold_left;
-exports.map       = map;
-exports.filter    = filter;
+exports.map = map;
+exports.filter = filter;
 exports.partition = partition;
 exports.quicksort = quicksort;

@@ -1,8 +1,8 @@
 const builtIns = require('../builtins.js');
-const _        = require('../helpers.js');
-const assert   = require('assert');
+const _ = require('../helpers.js');
+const assert = require('assert');
 
-const isBuiltIn  = builtIns.isBuiltIn;
+const isBuiltIn = builtIns.isBuiltIn;
 const getBuiltIn = builtIns.getBuiltIn;
 
 // some things are built ins, others are not

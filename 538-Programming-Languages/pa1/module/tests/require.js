@@ -1,4 +1,4 @@
-const assert   = require('assert');
+const assert = require('assert');
 const require_ = require('../require.js').makeRequire(__dirname);
 
 

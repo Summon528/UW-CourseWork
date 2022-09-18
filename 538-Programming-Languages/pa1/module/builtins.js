@@ -1,6 +1,6 @@
 const { List } = require('immutable');
-const assert   = require('assert');
-const _        = require('./helpers.js');
+const assert = require('assert');
+const _ = require('./helpers.js');
 
 /*
  * This module exports an API for checking if something is a built in library

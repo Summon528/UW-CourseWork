@@ -1,5 +1,5 @@
 const { List } = require('immutable');
-const assert   = require('assert');
+const assert = require('assert');
 
 /* QUESTION 1 (5pts):
  *

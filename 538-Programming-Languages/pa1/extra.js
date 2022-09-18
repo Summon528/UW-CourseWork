@@ -9,7 +9,7 @@ const assert = require('assert')
   your implementation.  You may wish to add additional tests, though.
 */
 
-let ls = List([1,2,3,4,5]);
+let ls = List([1, 2, 3, 4, 5]);
 
 /* QUESTION 1: Average of squares */
 
@@ -58,10 +58,10 @@ assert(ls_max(ls) == 5);
 */
 
 const ls_evens = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
-const ls_odds  = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const ls_odds = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
 
-assert(ls_evens(ls).equals(List([2,4])));
-assert(ls_odds(ls).equals(List([1,3,5])));
+assert(ls_evens(ls).equals(List([2, 4])));
+assert(ls_odds(ls).equals(List([1, 3, 5])));
 
 /*
   Using function composition, implement a function that returns the maximum
@@ -93,7 +93,7 @@ const reverse = (ls) => {
   /** </FILL-IN> **/
 };
 
-assert(reverse(ls).equals(List([5,4,3,2,1])));
+assert(reverse(ls).equals(List([5, 4, 3, 2, 1])));
 
 /*
   Implement reverse using fold_left
@@ -101,7 +101,7 @@ assert(reverse(ls).equals(List([5,4,3,2,1])));
 
 const reverse2 = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
 
-assert(reverse2(ls).equals(List([5,4,3,2,1])));
+assert(reverse2(ls).equals(List([5, 4, 3, 2, 1])));
 
 /*
   Using map and your reverse function, write a function that takes
@@ -119,15 +119,15 @@ const str_ls = List(["test", "testset"]);
 const expected = List([List(["test", false]), List(["testset", true])]);
 assert(palindromes(str_ls).equals(expected));
 
-exports.ls_size     = ls_size;
-exports.sum_sqrs    = sum_sqrs;
-exports.avg_sqrs    = avg_sqrs;
-exports.ls_min      = ls_min;
-exports.ls_max      = ls_max;
-exports.ls_evens    = ls_evens;
-exports.ls_odds     = ls_odds;
-exports.max_even    = max_even;
-exports.min_even    = min_even;
-exports.reverse     = reverse;
-exports.reverse2    = reverse2;
+exports.ls_size = ls_size;
+exports.sum_sqrs = sum_sqrs;
+exports.avg_sqrs = avg_sqrs;
+exports.ls_min = ls_min;
+exports.ls_max = ls_max;
+exports.ls_evens = ls_evens;
+exports.ls_odds = ls_odds;
+exports.max_even = max_even;
+exports.min_even = min_even;
+exports.reverse = reverse;
+exports.reverse2 = reverse2;
 exports.palindromes = palindromes;

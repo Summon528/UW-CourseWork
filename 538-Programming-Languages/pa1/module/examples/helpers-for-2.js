@@ -1,12 +1,12 @@
 const for_ = require('../helpers.js').for_;
 
-for_(0, _ => true, i => i+1, i => {
+for_(0, _ => true, i => i + 1, i => {
   console.log(`yay: ${i}`);
 });
 
 // is computationally equivalent to:
 
-for(let i = 0; true; i++) {
+for (let i = 0; true; i++) {
   console.log(`yay: ${i}`);
 }
 
