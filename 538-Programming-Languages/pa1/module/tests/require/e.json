@@ -1,0 +1,9 @@
+{
+  "name": "problem set 0",
+  "version": "0.0.0",
+  "description": "this is a json object",
+  "num": 3,
+  "x": {
+    "y": 1337
+  }
+}
