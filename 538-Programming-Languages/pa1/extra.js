@@ -1,6 +1,7 @@
+
 const { List } = require('immutable')
 const assert = require('assert')
-
+const { map, filter, fold_left } = require("./quick.js");
 /*
   The following problems will give you a chance to practice higher order
   functions. To solve these problems, you can only use map, filter, fold_left
@@ -17,7 +18,7 @@ let ls = List([1, 2, 3, 4, 5]);
   First, implement a function that returns the size of a list using fold_left.
 */
 
-const ls_size = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const ls_size = ls => fold_left((acc, _) => acc + 1, 0, ls);
 
 assert(ls_size(ls) == 5);
 
@@ -27,7 +28,7 @@ assert(ls_size(ls) == 5);
   Example: sum_sqrs([2,3]) => 2*2 + 3*3 = 13.
 */
 
-const sum_sqrs = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const sum_sqrs = ls => fold_left((acc, x) => acc + x * x, 0, ls);
 
 assert(sum_sqrs(ls) == 55);
 
@@ -35,7 +36,7 @@ assert(sum_sqrs(ls) == 55);
   Finally, use both functions to implement the average of squares function.
 */
 
-const avg_sqrs = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const avg_sqrs = ls => sum_sqrs(ls) / ls_size(ls);
 
 assert(avg_sqrs(ls) == 11);
 
@@ -46,8 +47,8 @@ assert(avg_sqrs(ls) == 11);
   Implement min and max functions using fold_left
 */
 
-const ls_min = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
-const ls_max = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const ls_min = ls => ls.isEmpty() ? undefined : fold_left((acc, x) => Math.min(acc, x), Infinity, ls);
+const ls_max = ls => ls.isEmpty() ? undefined : fold_left((acc, x) => Math.max(acc, x), -Infinity, ls);
 
 assert(ls_min(ls) == 1);
 assert(ls_max(ls) == 5);
@@ -57,8 +58,8 @@ assert(ls_max(ls) == 5);
   using filter
 */
 
-const ls_evens = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
-const ls_odds = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const ls_evens = ls => filter(x => !(x % 2), ls);
+const ls_odds = ls => filter(x => !!(x % 2), ls);
 
 assert(ls_evens(ls).equals(List([2, 4])));
 assert(ls_odds(ls).equals(List([1, 3, 5])));
@@ -74,8 +75,8 @@ function compose(f, g) {
   };
 }
 
-const max_even = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
-const min_even = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const max_even = ls => compose(ls_max, ls_evens)(ls);
+const min_even = ls => compose(ls_min, ls_evens)(ls);
 
 assert(max_even(ls) == 4);
 assert(min_even(ls) == 2);
@@ -88,9 +89,10 @@ assert(min_even(ls) == 2);
 */
 
 const reverse = (ls) => {
-  /** <FILL-IN> **/
-  return undefined;
-  /** </FILL-IN> **/
+  if (ls.isEmpty()) {
+    return List();
+  }
+  return List([ls.last(), ...reverse(ls.butLast())]);
 };
 
 assert(reverse(ls).equals(List([5, 4, 3, 2, 1])));
@@ -99,7 +101,7 @@ assert(reverse(ls).equals(List([5, 4, 3, 2, 1])));
   Implement reverse using fold_left
 */
 
-const reverse2 = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const reverse2 = ls => fold_left((acc, x) => acc.insert(0, x), List(), ls);
 
 assert(reverse2(ls).equals(List([5, 4, 3, 2, 1])));
 
@@ -113,7 +115,7 @@ const reverse_str = str => reverse(List(str.split(''))).join('');
 
 assert(reverse_str("reverse") == "esrever");
 
-const palindromes = ls => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const palindromes = ls => map(s => List([s, s === reverse_str(s)]), ls);
 
 const str_ls = List(["test", "testset"]);
 const expected = List([List(["test", false]), List(["testset", true])]);
