@@ -27,8 +27,9 @@ const assert = require('assert');
  *   behavior of for_.
  */
 function for_(cur, cond, next, fbody) {
-  /** <FILL-IN> **/
-  /** </FILL-IN> **/
+  if (!cond(cur)) return;
+  fbody(cur);
+  for_(next(cur), cond, next, fbody);
 }
 exports.for_ = for_;
 
@@ -43,8 +44,11 @@ function each(list, f) {
   if (list.size == 0) {
     return;
   }
-  /** <FILL-IN> **/
-  /** </FILL-IN> **/
+  for_(0,
+    i => i < list.size,
+    i => ++i,
+    i => f(list.get(i), i)
+  );
 }
 exports.each = each;
 
