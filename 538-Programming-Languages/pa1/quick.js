@@ -90,7 +90,7 @@ const fold_left = function(f, base, ls) {
   }
 
   // Write the recursive fold_left call
-  return /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+  return f(fold_left(f, base, ls.butLast()), ls.last());
 };
 
 /* TASK 2 (10pts):
@@ -115,7 +115,7 @@ const fold_left = function(f, base, ls) {
   Hint: the base value could be an empty list (List([])).
 */
 
-const map = (g, ls) => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const map = (g, ls) => fold_left((acc, x) => acc.push(g(x)), List([]), ls);
 
 
 /* TASK 3 (7.5pts):
@@ -138,7 +138,7 @@ const map = (g, ls) => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
   Again, your constraint is to use fold_left only (no loops!).
 */
 
-const filter = (g, ls) => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const filter = (g, ls) => fold_left((acc, x) => g(x) ? acc.push(x) : acc, List([]), ls);
 
 
 /* TASK 4 (7.5pts):
@@ -162,7 +162,7 @@ const filter = (g, ls) => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
   are not allowed to use other looping constructs, even fold_left.
 */
 
-const partition = (g, ls) => /** <FILL-IN> **/ undefined; /** </FILL-IN> **/
+const partition = (g, ls) => List([filter(g, ls), filter(el => !g(el), ls)]);
 
 
 /* TASK 5 (15pts):
@@ -194,9 +194,9 @@ const quicksort = function(ls) {
     return ls;
   }
 
-  /** <FILL-IN> **/
-  return undefined;
-  /** </FILL-IN> **/
+  const pivot = ls.last();
+  const [left, right] = partition(el => el <= pivot, ls.butLast());
+  return List().concat(quicksort(left), pivot, quicksort(right));
 };
 
 
