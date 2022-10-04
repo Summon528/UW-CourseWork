@@ -43,13 +43,20 @@ console.log(force(t));
 // once.  Hint: represent the thunk as a CLOSURE. 
 
 function delay(f) {
-  /** <FILL-IN> **/
-  return f;
-  /** </FILL-IN> **/
+  let ran = false;
+  let ret;
+  return () => {
+    if (ran) {
+      return ret;
+    } else {
+      ran = true;
+      return ret = f();
+    }
+  }
 }
 
 function force(t) {
-    return t();
+  return t();
 }
 
 // ----------------------------------------------------------------- //
@@ -67,9 +74,9 @@ function force(t) {
 
 function repeat(n) {
   return delay(function() {
-    return { 
+    return {
       head: n,
-      tail: repeat(n) 
+      tail: repeat(n)
     };
   });
 }
@@ -112,8 +119,10 @@ console.log(take(5, repeat(2)));
 // numbers [n, n+1, n+2, ...]
 
 function enumFrom(n) {
-  /** <FILL-IN> **/
-  /** </FILL-IN> **/
+  return delay(() => ({
+    head: n,
+    tail: enumFrom(n + 1)
+  }));
 }
 
 console.log("== TEST: enumFrom ==");
@@ -124,12 +133,17 @@ console.log(take(5, enumFrom(2)));
 // and returns a new stream [f(x_0), f(x_1), ...]
 
 function map(f, thunk_xs) {
-  /** <FILL-IN> **/
-  /** </FILL-IN> **/
+  return delay(() => {
+    const { head, tail } = force(thunk_xs);
+    return {
+      head: f(head),
+      tail: map(f, tail)
+    }
+  });
 }
 
 console.log("== TEST: map ==");
-let xs = map(function(x) {console.log("Multiplying " + x); return x * 2}, enumFrom(4));
+let xs = map(function(x) { console.log("Multiplying " + x); return x * 2 }, enumFrom(4));
 console.log("Taking... (this should happen before any Multiplying)");
 console.log(take(5, xs));
 
@@ -139,14 +153,20 @@ console.log(take(5, xs));
 // [f(x_0,y_0), f(x_1,y_1), ...]
 
 function zipWith(f, thunk_xs, thunk_ys) {
-  /** <FILL-IN> **/
-  /** </FILL-IN> **/
+  return delay(() => {
+    const x = force(thunk_xs);
+    const y = force(thunk_ys);
+    return {
+      head: f(x.head, y.head),
+      tail: zipWith(f, x.tail, y.tail)
+    }
+  });
 }
 
 console.log("== TEST: zipWith ==");
-console.log(take(5, zipWith(function(x,y) {return x > y},
-                            enumFrom(8),
-                            map(function(x) {return x * x}, enumFrom(1)))));
+console.log(take(5, zipWith(function(x, y) { return x > y },
+  enumFrom(8),
+  map(function(x) { return x * x }, enumFrom(1)))));
 
 // Question 5 (5pts):
 // tail
@@ -154,8 +174,8 @@ console.log(take(5, zipWith(function(x,y) {return x > y},
 //      Returns a new stream [x_1, x_2, ...].
 //
 function tail(thunk_xs) {
-  /** <FILL-IN> **/
-  /** </FILL-IN> **/
+  const { tail } = force(thunk_xs);
+  return tail;
 }
 
 console.log("== TEST: tail ==");
@@ -166,8 +186,10 @@ console.log(take(5, tail(enumFrom(2))));
 //      Accepts an element x and a stream [y_0, y_1, ...],
 //      Returns new stream [x, y_0, y_1, ... ].
 function cons(head, thunk_tail) {
-  /** <FILL-IN> **/
-  /** </FILL-IN> **/
+  return delay(() => ({
+    head,
+    tail: thunk_tail
+  }));
 }
 
 console.log("== TEST: cons ==");
