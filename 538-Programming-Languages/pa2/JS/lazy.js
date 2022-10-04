@@ -174,8 +174,11 @@ console.log(take(5, zipWith(function(x, y) { return x > y },
 //      Returns a new stream [x_1, x_2, ...].
 //
 function tail(thunk_xs) {
-  const { tail } = force(thunk_xs);
-  return tail;
+  // Why?
+  return delay(() => ({
+    head: force(force(thunk_xs).tail).head,
+    tail: force(force(thunk_xs).tail).tail
+  }));
 }
 
 console.log("== TEST: tail ==");
