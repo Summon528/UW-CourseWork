@@ -70,7 +70,6 @@ const Status BufMgr::allocBuf(int & frame)
       advanceClock();
       ++steps;
       BufDesc* bufDesc = &bufTable[clockHand];
-      int pageNo = bufDesc->pageNo;
       if (!bufDesc->valid) {
         break;
       }
@@ -82,7 +81,6 @@ const Status BufMgr::allocBuf(int & frame)
         continue;
       }
       Status s = hashTable->remove(bufDesc->file, bufDesc->pageNo);
-      Status s2 = s;
       ASSERT(s == OK);
       if (bufDesc->dirty) {
         bufDesc->file->writePage(bufDesc->pageNo, &bufPool[clockHand]);
