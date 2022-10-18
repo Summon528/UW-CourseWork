@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <iostream>
 #include <stdio.h>
+#include <climits>
 #include "page.h"
 #include "buf.h"
 
@@ -14,6 +15,8 @@
                        exit(1); \
 		     } \
                    }
+
+#define FILECASTHACK(f) (File *)((long)(f) % INT_MAX)
 
 //----------------------------------------
 // Constructor of the class BufMgr
@@ -80,7 +83,7 @@ const Status BufMgr::allocBuf(int & frame)
       if (bufDesc->pinCnt) {
         continue;
       }
-      Status s = hashTable->remove(bufDesc->file, bufDesc->pageNo);
+      Status s = hashTable->remove(FILECASTHACK(bufDesc->file), bufDesc->pageNo);
       ASSERT(s == OK);
       if (bufDesc->dirty) {
         bufDesc->file->writePage(bufDesc->pageNo, &bufPool[clockHand]);
@@ -101,7 +104,7 @@ const Status BufMgr::allocBuf(int & frame)
 const Status BufMgr::readPage(File* file, const int PageNo, Page*& page)
 {
     int frameNo;
-    Status s = hashTable->lookup(file, PageNo, frameNo);
+    Status s = hashTable->lookup(FILECASTHACK(file), PageNo, frameNo);
     if (s == HASHNOTFOUND) {
       s = allocBuf(frameNo);
       if (s == BUFFEREXCEEDED) {
@@ -114,7 +117,7 @@ const Status BufMgr::readPage(File* file, const int PageNo, Page*& page)
       }
       bufTable[frameNo].Set(file, PageNo);
       page = &bufPool[frameNo];
-      s = hashTable->insert(file, PageNo, frameNo);
+      s = hashTable->insert(FILECASTHACK(file), PageNo, frameNo);
       ASSERT(s == OK);
       return OK;
     }
@@ -130,7 +133,7 @@ const Status BufMgr::unPinPage(File* file, const int PageNo,
 			       const bool dirty) 
 {
     int frameNo;
-    Status s = hashTable->lookup(file, PageNo, frameNo);
+    Status s = hashTable->lookup(FILECASTHACK(file), PageNo, frameNo);
     if (s == HASHNOTFOUND) {
       return s;
     }
@@ -158,7 +161,7 @@ const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)
     }
     ASSERT(s == OK);
     page = &bufPool[frameNo];
-    s = hashTable->insert(file, pageNo, frameNo);
+    s = hashTable->insert(FILECASTHACK(file), pageNo, frameNo);
     ASSERT(s == OK);
     bufTable[frameNo].Set(file, pageNo);
 
@@ -170,13 +173,13 @@ const Status BufMgr::disposePage(File* file, const int pageNo)
     // see if it is in the buffer pool
     Status status = OK;
     int frameNo = 0;
-    status = hashTable->lookup(file, pageNo, frameNo);
+    status = hashTable->lookup(FILECASTHACK(file), pageNo, frameNo);
     if (status == OK)
     {
         // clear the page
         bufTable[frameNo].Clear();
     }
-    status = hashTable->remove(file, pageNo);
+    status = hashTable->remove(FILECASTHACK(file), pageNo);
 
     // deallocate it in the file
     return file->disposePage(pageNo);
@@ -205,7 +208,7 @@ const Status BufMgr::flushFile(const File* file)
 	tmpbuf->dirty = false;
       }
 
-      hashTable->remove(file,tmpbuf->pageNo);
+      hashTable->remove(FILECASTHACK(file),tmpbuf->pageNo);
 
       tmpbuf->file = NULL;
       tmpbuf->pageNo = -1;
