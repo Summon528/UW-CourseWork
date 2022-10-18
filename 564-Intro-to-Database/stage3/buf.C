@@ -65,44 +65,106 @@ BufMgr::~BufMgr() {
 
 const Status BufMgr::allocBuf(int & frame) 
 {
+    int steps = 0;
+    do {
+      advanceClock();
+      ++steps;
+      BufDesc* bufDesc = &bufTable[clockHand];
+      int pageNo = bufDesc->pageNo;
+      if (!bufDesc->valid) {
+        break;
+      }
+      if (bufDesc->refbit) {
+        bufDesc->refbit = false;
+        continue;
+      }
+      if (bufDesc->pinCnt) {
+        continue;
+      }
+      Status s = hashTable->remove(bufDesc->file, bufDesc->pageNo);
+      Status s2 = s;
+      ASSERT(s == OK);
+      if (bufDesc->dirty) {
+        bufDesc->file->writePage(bufDesc->pageNo, &bufPool[clockHand]);
+        ASSERT(s == OK);
+      }
+      break;
+    } while (steps != numBufs * 2);
 
-
-
-
-
-
+    if (steps == numBufs * 2) {
+      return BUFFEREXCEEDED;
+    }
+    
+    frame = clockHand;
+    return OK;
 }
 
 	
 const Status BufMgr::readPage(File* file, const int PageNo, Page*& page)
 {
-
-
-
-
-
+    int frameNo;
+    Status s = hashTable->lookup(file, PageNo, frameNo);
+    if (s == HASHNOTFOUND) {
+      s = allocBuf(frameNo);
+      if (s == BUFFEREXCEEDED) {
+        return s;
+      }
+      s = file->readPage(PageNo, &bufPool[frameNo]);
+      if (s == UNIXERR) {
+        bufTable[frameNo].Clear();
+        return s;
+      }
+      bufTable[frameNo].Set(file, PageNo);
+      page = &bufPool[frameNo];
+      s = hashTable->insert(file, PageNo, frameNo);
+      ASSERT(s == OK);
+      return OK;
+    }
+    ASSERT(s == OK);
+    bufTable[frameNo].refbit = true;
+    ++bufTable[frameNo].pinCnt;
+    page = &bufPool[frameNo];
+    return OK;
 }
 
 
 const Status BufMgr::unPinPage(File* file, const int PageNo, 
 			       const bool dirty) 
 {
-
-
-
-
-
+    int frameNo;
+    Status s = hashTable->lookup(file, PageNo, frameNo);
+    if (s == HASHNOTFOUND) {
+      return s;
+    }
+    ASSERT(s == OK);
+    if (bufTable[frameNo].pinCnt == 0) {
+      return PAGENOTPINNED;
+    }
+    --bufTable[frameNo].pinCnt;
+    bufTable[frameNo].dirty = true;
+    return OK;
 }
 
 const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page) 
 {
+    Status s = file->allocatePage(pageNo);
+    if (s == UNIXERR) {
+      cerr << "File allocatePage UNIXERR" << endl;
+      return UNIXERR;
+    }
+    ASSERT(s == OK);
+    int frameNo;
+    s = allocBuf(frameNo);
+    if (s == BUFFEREXCEEDED) {
+      return BUFFEREXCEEDED;
+    }
+    ASSERT(s == OK);
+    page = &bufPool[frameNo];
+    s = hashTable->insert(file, pageNo, frameNo);
+    ASSERT(s == OK);
+    bufTable[frameNo].Set(file, pageNo);
 
-
-
-
-
-
-
+    return OK;
 }
 
 const Status BufMgr::disposePage(File* file, const int pageNo) 
