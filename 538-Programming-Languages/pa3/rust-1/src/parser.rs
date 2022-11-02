@@ -38,7 +38,7 @@ pub fn rpn_repl() -> rpn::Result<()> {
 
 pub fn evaluate_line(stack: &mut rpn::Stack, buf: &str) -> rpn::Result<()> {
     // Trim whitespace and split; this gives an iterator of tokens.
-    let tokens = buf.trim().split_whitespace();
+    let tokens = buf.split_whitespace();
 
     /*
      * Write the main loop processing the tokens. The `parse` method for Strings will be useful for
@@ -47,7 +47,23 @@ pub fn evaluate_line(stack: &mut rpn::Stack, buf: &str) -> rpn::Result<()> {
      * https://doc.rust-lang.org/std/primitive.str.html#method.parse
      */
     for tok in tokens {
-        todo!()
+        if let Ok(val) = tok.parse::<bool>() {
+            stack.push(rpn::Item::Bool(val))?;
+        } else if let Ok(val) = tok.parse::<i32>() {
+            stack.push(rpn::Item::Int(val))?;
+        } else {
+            let tok = match tok {
+                "+" => rpn::Op::Add,
+                "=" => rpn::Op::Eq,
+                "~" => rpn::Op::Neg,
+                "<->" => rpn::Op::Swap,
+                "#" => rpn::Op::Rand,
+                "?" => rpn::Op::Cond,
+                "quit" => rpn::Op::Quit,
+                _ => return Err(rpn::Error::Syntax),
+            };
+            stack.eval(tok)?;
+        };
     }
     Ok(())
 }
