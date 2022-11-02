@@ -66,7 +66,12 @@ unit1 sc =
         interp
         (Op Plus (Lit 4) (Lit 3))
         7
-        "sample: interp expr"
+        "sample: interp expr",
+      mkTest
+        (\expr -> run (compile expr) [])
+        (Op Plus (Lit 4) (Op Minus (Op Times (Lit 5) (Lit 3)) (Lit 18)))
+        (Just [1])
+        "my test"
     ]
   where
     mkTest :: (Show b, Eq b) => (a -> b) -> a -> b -> String -> TestTree

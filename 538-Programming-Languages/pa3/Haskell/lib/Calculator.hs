@@ -80,7 +80,9 @@ interpBinOp Times = (*)
 
 interp :: Expr -> Int
 -- <FILL-IN>
-interp = question "[5 pts] COMPLETE THE DEFINITION"
+interp expr = case expr of
+  Op op e1 e2 -> interpBinOp op (interp e1) (interp e2)
+  Lit lit -> lit
 
 -- </FILL-IN>
 
@@ -113,7 +115,10 @@ interp = question "[5 pts] COMPLETE THE DEFINITION"
 
 simplifyZero :: Expr -> Expr
 -- <FILL-IN>
-simplifyZero = question "[7 pts] COMPLETE THE DEFINITION"
+simplifyZero expr = case expr of
+  Op _ (Lit 0) e -> simplifyZero e
+  Op _ e (Lit 0) -> simplifyZero e
+  _ -> expr
 
 -- </FILL-IN>
 
@@ -148,7 +153,9 @@ simplifyZero = question "[7 pts] COMPLETE THE DEFINITION"
 
 peephole :: (Expr -> Expr) -> Expr -> Expr
 -- <FILL-IN>
-peephole = question "[8 pts] COMPLETE THE DEFINITION"
+peephole opt expr = case expr of
+  Op op e1 e2 -> opt $ Op op (peephole opt e1) (peephole opt e2)
+  _ -> expr
 
 -- </FILL-IN>
 
@@ -204,7 +211,10 @@ type Stack = [Int]
 
 step :: Instr -> Stack -> Maybe Stack
 -- <FILL-IN>
-step = question "[8 pts] COMPLETE THE DEFINITION"
+step instr stack = case (instr, stack) of
+  (IPush x, _) -> Just $ x : stack
+  (IOp op, x : y : r) -> Just $ interpBinOp op y x : r
+  _ -> Nothing
 
 -- </FILL-IN>
 
@@ -216,7 +226,7 @@ step = question "[8 pts] COMPLETE THE DEFINITION"
 
 run :: [Instr] -> Stack -> Maybe Stack
 -- <FILL-IN>
-run = question "[12 pts] COMPLETE THE DEFINITION"
+run instrs stack = foldM (flip step) stack instrs
 
 -- </FILL-IN>
 
@@ -238,7 +248,9 @@ run = question "[12 pts] COMPLETE THE DEFINITION"
 
 compile :: Expr -> [Instr]
 -- <FILL-IN>
-compile = question "[10 pts] COMPLETE THE DEFINITION"
+compile expr = case expr of
+  Op op e1 e2 -> compile e1 ++ compile e2 ++ [IOp op]
+  Lit lit -> [IPush lit]
 
 -- </FILL-IN>
 
