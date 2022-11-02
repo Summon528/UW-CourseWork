@@ -1,0 +1,8 @@
+[package]
+name = "pa3"
+version = "0.1.1"
+authors = ["CS 538"]
+edition = "2021"
+
+[dependencies]
+rand = "0.6.5"
