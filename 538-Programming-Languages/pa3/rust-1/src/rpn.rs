@@ -95,15 +95,19 @@ impl Stack {
     pub fn eval(&mut self, op: Op) -> Result<()> {
         match op {
             Op::Add => {
-                let b = self.pop()?.int()?;
-                let a = self.pop()?.int()?;
-                let result = Item::Int(a + b);
+                let b = self.pop()?;
+                let a = self.pop()?;
+                let result = Item::Int(a.int()? + b.int()?);
                 self.push(result)
             }
             Op::Eq => {
                 let b = self.pop()?;
                 let a = self.pop()?;
-                let result = Item::Bool(a == b);
+                let result = match (a, b) {
+                    (Item::Int(x), Item::Int(y)) => Item::Bool(x == y),
+                    (Item::Bool(x), Item::Bool(y)) => Item::Bool(x == y),
+                    _ => return Err(Error::Type),
+                };
                 self.push(result)
             }
             Op::Neg => {

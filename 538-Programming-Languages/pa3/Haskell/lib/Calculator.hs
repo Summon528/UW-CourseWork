@@ -116,8 +116,8 @@ interp expr = case expr of
 simplifyZero :: Expr -> Expr
 -- <FILL-IN>
 simplifyZero expr = case expr of
-  Op _ (Lit 0) e -> simplifyZero e
-  Op _ e (Lit 0) -> simplifyZero e
+  Op Plus (Lit 0) e -> simplifyZero e
+  Op Plus e (Lit 0) -> simplifyZero e
   _ -> expr
 
 -- </FILL-IN>
