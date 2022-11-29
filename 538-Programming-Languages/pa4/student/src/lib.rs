@@ -384,14 +384,78 @@ impl<K, V> Iterator for IntoIter<K, V> {
 /// annotations and tweaks in a few key places, but your code for the borrowing and mutable
 /// iterators should be a nearly exact copy of your code for consuming iterators.
 
-/*
 pub struct Iter<'a, K, V> {
-    TODO
+    next_nodes: Vec<Next<(&'a K, &'a V), &'a TreeMap<K, V>>>,
+    current_val: Option<(&'a K, &'a V)>,
 }
 pub struct IterMut<'a, K, V> {
-    TODO
+    next_nodes: Vec<Next<(&'a K, &'a mut V), &'a mut TreeMap<K, V>>>,
+    current_val: Option<(&'a K, &'a mut V)>,
 }
-*/
+
+impl<K, V> TreeMap<K, V> {
+    pub fn iter(&self) -> Iter<K, V> {
+        Iter {
+            next_nodes: vec![Next::Tree(self)],
+            current_val: None,
+        }
+    }
+    pub fn iter_mut(&mut self) -> IterMut<K, V> {
+        IterMut {
+            next_nodes: vec![Next::Tree(self)],
+            current_val: None,
+        }
+    }
+}
+
+impl<'a, K, V> Iter<'a, K, V> {
+    fn descend_left(&mut self, tree: &'a TreeMap<K, V>) {
+        let mut cur = tree;
+        while let Some(cur_in) = cur.inner.as_ref() {
+            self.next_nodes.push(Next::Tree(&cur_in.rt));
+            self.next_nodes.push(Next::Item((&cur_in.key, &cur_in.val)));
+            cur = &cur_in.lt;
+        }
+    }
+}
+
+impl<'a, K, V> IterMut<'a, K, V> {
+    fn descend_left(&mut self, tree: &'a mut TreeMap<K, V>) {
+        let mut cur = tree;
+        while let Some(cur_in) = cur.inner.as_mut() {
+            self.next_nodes.push(Next::Tree(&mut cur_in.rt));
+            self.next_nodes
+                .push(Next::Item((&mut cur_in.key, &mut cur_in.val)));
+            cur = &mut cur_in.lt;
+        }
+    }
+}
+
+impl<'a, K: 'a, V: 'a> Iterator for Iter<'a, K, V> {
+    type Item = (&'a K, &'a V);
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(nxt) = self.next_nodes.pop() {
+            match nxt {
+                Next::Item(val) => return Some(val),
+                Next::Tree(tree) => self.descend_left(tree),
+            }
+        }
+        None
+    }
+}
+
+impl<'a, K: 'a, V: 'a> Iterator for IterMut<'a, K, V> {
+    type Item = (&'a K, &'a mut V);
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(nxt) = self.next_nodes.pop() {
+            match nxt {
+                Next::Item(val) => return Some(val),
+                Next::Tree(tree) => self.descend_left(tree),
+            }
+        }
+        None
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -559,7 +623,6 @@ mod test {
         assert_eq!(iter.next(), None);
     }
 
-    /* Uncomment when borrowing iterator ready.
     #[test]
     fn test_borrow_iter() {
         let vec = vec![(1, 11), (3, 33), (2, 22)];
@@ -571,9 +634,8 @@ mod test {
         assert_eq!(iter.next(), Some((&2, &22)));
         assert_eq!(iter.next(), Some((&3, &33)));
         assert_eq!(iter.next(), None);
-    } */
+    }
 
-    /* Uncomment when mutable iterator ready.
     #[test]
     fn test_mut_iter() {
         let vec = vec![(1, 11), (3, 33), (2, 22)];
@@ -589,7 +651,7 @@ mod test {
         assert_eq!(tree.get(&1), Some(&101));
         assert_eq!(tree.get(&2), Some(&102));
         assert_eq!(tree.get(&3), Some(&103));
-    } */
+    }
 
     use std::cell::RefCell;
 
