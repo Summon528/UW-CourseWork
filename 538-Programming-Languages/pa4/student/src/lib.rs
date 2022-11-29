@@ -8,9 +8,12 @@
 #![allow(unused_imports)]
 #![forbid(unsafe_code)]
 
+use std::borrow::{Borrow, BorrowMut};
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::iter::{FromIterator, IntoIterator};
+use std::mem::replace;
 use std::ops::{Bound, Index, IndexMut, RangeBounds};
 
 /// Type of BST nodes.
@@ -44,41 +47,57 @@ where
 {
     /// Make a new `TreeMap`.
     pub fn new() -> Self {
-        todo!()
+        TreeMap { inner: None }
     }
 
     /// Clear a `TreeMap`.
     pub fn clear(&mut self) {
-        todo!()
+        self.inner = None
     }
 
     /// Check if a `TreeMap` is empty.
     pub fn is_empty(&self) -> bool {
-        todo!()
+        self.inner.is_none()
     }
 
     /// Compute the size of a `TreeMap`.
     pub fn len(&self) -> usize {
-        todo!()
+        self.inner.as_ref().map_or(0, |x| x.size)
     }
 
     /// Check if a `TreeMap` has a certain key.
     pub fn has_key(&self, key: &K) -> bool {
-        todo!()
+        self.get(key).is_some()
     }
 
     /// Get a reference to the value associated with a key, if present.
     ///
     /// If the key is not in the map, return `None`.
     pub fn get(&self, key: &K) -> Option<&V> {
-        todo!()
+        let mut cur = &self.inner;
+        while let Some(cur_in) = cur {
+            match key.cmp(&cur_in.key) {
+                Ordering::Equal => return Some(&cur_in.val),
+                Ordering::Greater => cur = &cur_in.rt.inner,
+                Ordering::Less => cur = &cur_in.lt.inner,
+            }
+        }
+        None
     }
 
     /// Get a mutable reference to the value associated with a key, if present.
     ///
     /// If the key is not in the map, return `None`.
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
-        todo!()
+        let mut cur = &mut self.inner;
+        while let Some(cur_in) = cur {
+            match key.cmp(&cur_in.key) {
+                Ordering::Equal => return Some(&mut cur_in.val),
+                Ordering::Greater => cur = &mut cur_in.rt.inner,
+                Ordering::Less => cur = &mut cur_in.lt.inner,
+            }
+        }
+        None
     }
 
     /// Insert a (key, value) pair into a TreeMap.
@@ -86,7 +105,22 @@ where
     /// If the key is already present in the map, return the previous value and replace the old
     /// value with the new value. Otherwise, insert the new (key, value) pair and return `None`.
     pub fn insert(&mut self, key: K, val: V) -> Option<V> {
-        todo!()
+        if let Some(target) = self.get_mut(&key) {
+            let mut val = val;
+            std::mem::swap(target, &mut val);
+            Some(val)
+        } else {
+            self.insert_tree(&mut TreeMap {
+                inner: Some(Box::new(Node {
+                    key,
+                    val,
+                    size: 1,
+                    lt: TreeMap::new(),
+                    rt: TreeMap::new(),
+                })),
+            });
+            None
+        }
     }
 
     /// Insert a nonempty `TreeMap` into a `TreeMap`.
@@ -102,7 +136,18 @@ where
     /// silently) if this requirement is not met. However if the trees are not overlapping, you
     /// must maintain the BST invariant.
     fn insert_tree(&mut self, other: &mut Self) {
-        todo!()
+        if let Some(o_root) = other.inner.as_ref() {
+            let mut cur = &mut self.inner;
+            while let Some(cur_in) = cur {
+                cur_in.size += o_root.size;
+                match o_root.key.cmp(&cur_in.key) {
+                    Ordering::Equal => panic!(),
+                    Ordering::Greater => cur = &mut cur_in.rt.inner,
+                    Ordering::Less => cur = &mut cur_in.lt.inner,
+                }
+            }
+            *cur = other.inner.take()
+        }
     }
 
     /// Remove a key from a `TreeMap`.
@@ -112,7 +157,28 @@ where
     ///
     /// Hint: take the two child trees of the node you're removing, insert one into the other.
     pub fn remove(&mut self, key: K) -> Option<V> {
-        todo!()
+        if !self.has_key(&key) {
+            return None;
+        }
+        let mut cur = &mut self.inner;
+        while let Some(cur_in) = cur {
+            cur_in.size -= 1;
+            match key.cmp(&cur_in.key) {
+                Ordering::Equal => break,
+                Ordering::Greater => cur = &mut cur.as_mut().unwrap().rt.inner,
+                Ordering::Less => cur = &mut cur.as_mut().unwrap().lt.inner,
+            }
+        }
+        let mut left = TreeMap {
+            inner: cur.as_mut().unwrap().lt.inner.take(),
+        };
+        let mut right = TreeMap {
+            inner: cur.as_mut().unwrap().rt.inner.take(),
+        };
+        left.insert_tree(&mut right);
+        let ret = Some(cur.take().unwrap().val);
+        *cur = left.inner.take();
+        ret
     }
 }
 
@@ -128,7 +194,11 @@ where
     where
         T: IntoIterator<Item = (K, V)>,
     {
-        todo!()
+        let mut tm = TreeMap::new();
+        iter.into_iter().for_each(|(k, v)| {
+            tm.insert(k, v);
+        });
+        tm
     }
 }
 
@@ -187,7 +257,7 @@ where
     type Output = V;
 
     fn index(&self, key: &K) -> &V {
-        todo!()
+        self.get(key).unwrap()
     }
 }
 
@@ -197,7 +267,7 @@ where
     V: Debug,
 {
     fn index_mut(&mut self, key: &'a K) -> &mut V {
-        todo!()
+        self.get_mut(key).unwrap()
     }
 }
 
@@ -232,7 +302,10 @@ impl<K, V> IntoIter<K, V> {
     ///
     /// Note that this function takes ownership, because we are building a *consuming* iterator.
     fn new(tree: TreeMap<K, V>) -> Self {
-        todo!()
+        IntoIter {
+            next_nodes: vec![Next::Tree(tree)],
+            current_val: None,
+        }
     }
 
     /// This is the main workhorse function for setting up the iterator. In words, this function
@@ -241,7 +314,12 @@ impl<K, V> IntoIter<K, V> {
     /// nodes in the correct order---we want an in-order traversal, so the iterator should visit
     /// left-child, parent, right-child as we pop things off the stack.
     fn descend_left(&mut self, tree: TreeMap<K, V>) {
-        todo!()
+        let mut cur = tree;
+        while let Some(cur_in) = cur.inner.take() {
+            self.next_nodes.push(Next::Tree(cur_in.rt));
+            self.next_nodes.push(Next::Item((cur_in.key, cur_in.val)));
+            cur = cur_in.lt;
+        }
     }
 }
 
@@ -251,7 +329,7 @@ impl<K, V> IntoIterator for TreeMap<K, V> {
     type IntoIter = IntoIter<K, V>;
 
     fn into_iter(self) -> IntoIter<K, V> {
-        todo!()
+        IntoIter::new(self)
     }
 }
 
@@ -264,7 +342,13 @@ impl<K, V> IntoIterator for TreeMap<K, V> {
 impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        while let Some(nxt) = self.next_nodes.pop() {
+            match nxt {
+                Next::Item(val) => return Some(val),
+                Next::Tree(tree) => self.descend_left(tree),
+            }
+        }
+        None
     }
 }
 
@@ -308,7 +392,6 @@ pub struct IterMut<'a, K, V> {
     TODO
 }
 */
-
 
 #[cfg(test)]
 mod test {
