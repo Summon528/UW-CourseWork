@@ -19,3 +19,12 @@
 [submodule "739-Distributed-System/Project4"]
 	path = 739-Distributed-System/Project4
 	url = https://github.com/c5h11oh/DistributedSystems-Chubby
+[submodule "564-Intro-to-Database/stage3"]
+	path = 564-Intro-to-Database/stage3
+	url = https://github.com/ctseng-uw/564-Stage3
+[submodule "564-Intro-to-Database/stage4"]
+	path = 564-Intro-to-Database/stage4
+	url = https://github.com/ctseng-uw/564-Stage4
+[submodule "564-Intro-to-Database/stage6"]
+	path = 564-Intro-to-Database/stage6
+	url = https://github.com/ctseng-uw/564-Stage6
