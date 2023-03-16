@@ -28,3 +28,6 @@
 [submodule "564-Intro-to-Database/stage6"]
 	path = 564-Intro-to-Database/stage6
 	url = https://github.com/ctseng-uw/564-Stage6
+[submodule "766-Computer-Vision/project"]
+	path = 766-Computer-Vision/project
+	url = https://github.com/ctseng-uw/766-Project
